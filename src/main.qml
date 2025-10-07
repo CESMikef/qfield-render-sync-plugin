@@ -340,6 +340,15 @@ Item {
             if (item) {
                 item.plugin = plugin
                 item.config = plugin.config
+                item.parent = iface.mainWindow().contentItem
+                console.log("[Render Sync] Sync dialog loaded successfully")
+            }
+        }
+        
+        onStatusChanged: {
+            if (status === Loader.Error) {
+                console.log("[Render Sync] ERROR: Failed to load SyncDialog.qml")
+                console.log("[Render Sync] Error:", syncDialogLoader.sourceComponent)
             }
         }
     }
