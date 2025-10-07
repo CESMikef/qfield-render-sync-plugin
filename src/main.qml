@@ -218,30 +218,48 @@ Item {
      * Open sync dialog or token configuration
      */
     function openSyncDialog() {
+        console.log("[Render Sync] openSyncDialog called - tokenConfigured=" + tokenConfigured + ", configValid=" + configValid)
+        
         if (!tokenConfigured || userToken === "") {
-            // Show token configuration dialog
+            console.log("[Render Sync] Opening token dialog - no token")
             openTokenDialog()
             return
         }
         
         if (!configValid) {
+            console.log("[Render Sync] Opening token dialog - config invalid")
             displayToast("Configuration incomplete. Please check your token.", "error")
             openTokenDialog()
             return
         }
         
         if (syncInProgress) {
+            console.log("[Render Sync] Sync already in progress")
             displayToast("Sync already in progress", "warning")
             return
         }
         
-        // Load sync dialog
-        if (syncDialogLoader.status !== Loader.Ready) {
-            syncDialogLoader.active = true
-        }
+        console.log("[Render Sync] Opening sync dialog...")
         
-        if (syncDialogLoader.item) {
+        // Load sync dialog
+        syncDialogLoader.active = true
+        
+        // Wait for loader to be ready
+        if (syncDialogLoader.status === Loader.Ready && syncDialogLoader.item) {
+            console.log("[Render Sync] Sync dialog ready, opening...")
             syncDialogLoader.item.open()
+        } else {
+            console.log("[Render Sync] Sync dialog not ready yet, status=" + syncDialogLoader.status)
+            // Try again after a short delay
+            Qt.callLater(function() {
+                if (syncDialogLoader.item) {
+                    console.log("[Render Sync] Sync dialog ready after delay, opening...")
+                    syncDialogLoader.item.open()
+                } else {
+                    console.log("[Render Sync] ERROR: Sync dialog failed to load")
+                    displayToast("Error loading sync dialog", "error")
+                }
+            })
         }
     }
     
