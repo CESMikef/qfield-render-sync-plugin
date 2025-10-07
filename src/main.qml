@@ -9,10 +9,10 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
-import Qt.labs.settings 1.0
 import org.qfield 1.0
 import org.qgis 1.0
 import Theme 1.0
+import Qt.labs.platform 1.0 as Platform
 
 import "js/utils.js" as Utils
 import "js/webdav_client.js" as WebDAV
@@ -70,28 +70,34 @@ Item {
         console.log("[Render Sync] Plugin loaded v" + pluginVersion)
     }
     
-    // Persistent settings storage
-    Settings {
-        id: pluginSettings
-        category: "RenderSync"
-        property string savedToken: ""
-    }
-    
     /**
-     * Load saved token from settings
+     * Load saved token from local storage
      */
     function loadSavedToken() {
-        userToken = pluginSettings.savedToken || ""
+        // Try to load from QField app settings
+        var storedToken = ""
+        
+        // Use QField's app settings if available
+        if (typeof qfieldSettings !== 'undefined') {
+            storedToken = qfieldSettings.value("RenderSync/token", "")
+        }
+        
+        userToken = storedToken || ""
         tokenConfigured = userToken && userToken !== ""
-        console.log("[Render Sync] Token " + (tokenConfigured ? "found: " + userToken.substring(0, 8) + "..." : "not found"))
+        console.log("[Render Sync] Token " + (tokenConfigured ? "found: " + userToken.substring(0, Math.min(8, userToken.length)) + "..." : "not found"))
     }
     
     /**
-     * Save token to settings
+     * Save token to local storage
      */
     function saveToken(token) {
-        console.log("[Render Sync] Saving token: " + token.substring(0, 8) + "...")
-        pluginSettings.savedToken = token
+        console.log("[Render Sync] Saving token: " + token.substring(0, Math.min(8, token.length)) + "...")
+        
+        // Save to QField app settings if available
+        if (typeof qfieldSettings !== 'undefined') {
+            qfieldSettings.setValue("RenderSync/token", token)
+        }
+        
         userToken = token
         tokenConfigured = true
         console.log("[Render Sync] Token saved successfully")
