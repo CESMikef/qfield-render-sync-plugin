@@ -49,10 +49,17 @@ Item {
     Component.onCompleted: {
         console.log("[Render Sync] Plugin loading...")
         
+        // Show visible startup message
+        displayToast("Render Sync v" + pluginVersion + " loading...")
+        
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
             iface.addItemToPluginsToolbar(syncButton)
             console.log("[Render Sync] Button added to plugins toolbar")
+            displayToast("Render Sync: Button added to toolbar")
+        } else {
+            console.log("[Render Sync] ERROR: Could not add button to toolbar")
+            displayToast("ERROR: Could not add toolbar button")
         }
         
         // Load saved token from settings
@@ -67,6 +74,7 @@ Item {
         }
         
         console.log("[Render Sync] Plugin loaded v" + pluginVersion)
+        displayToast("Render Sync v" + pluginVersion + " loaded successfully!")
     }
     
     /**
@@ -270,26 +278,30 @@ Item {
                 if (syncDialogLoader.status === Loader.Ready) {
                     if (syncDialogLoader.item) {
                         console.log("[Render Sync] Dialog loaded successfully, opening...")
+                        displayToast("Opening sync dialog...")
                         try {
                             syncDialogLoader.item.open()
                             console.log("[Render Sync] Dialog opened")
                         } catch (e) {
                             console.log("[Render Sync] ERROR opening dialog:", e)
-                            displayToast("Error opening dialog: " + e, "error")
+                            displayToast("ERROR: Cannot open dialog - " + e.toString(), "error")
                         }
                     } else {
                         console.log("[Render Sync] ERROR: Loader ready but item is null")
-                        displayToast("Dialog failed to load (null item)", "error")
+                        displayToast("ERROR: Dialog item is null", "error")
                     }
                 } else if (syncDialogLoader.status === Loader.Error) {
                     console.log("[Render Sync] ERROR: Loader failed with error status")
-                    displayToast("Failed to load sync dialog - check logs", "error")
+                    displayToast("ERROR: Dialog failed to load - QML syntax error", "error")
                 } else if (attempt < maxAttempts) {
                     // Try again
+                    if (attempt === 1) {
+                        displayToast("Loading dialog (attempt " + attempt + ")...")
+                    }
                     Qt.callLater(tryOpen)
                 } else {
                     console.log("[Render Sync] ERROR: Timeout waiting for dialog to load")
-                    displayToast("Timeout loading dialog", "error")
+                    displayToast("ERROR: Dialog loading timeout after " + maxAttempts + " attempts", "error")
                 }
             }
             
