@@ -1,0 +1,67 @@
+name: Release Plugin
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Package Plugin
+        run: |
+          cd src
+          zip -r ../qfield-render-sync-${{ steps.get_version.outputs.VERSION }}.zip \
+            main.qml \
+            metadata.txt \
+            icon.svg \
+            components/ \
+            js/
+          cd ..
+          echo "Created qfield-render-sync-${{ steps.get_version.outputs.VERSION }}.zip"
+          ls -lh *.zip
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: qfield-render-sync-${{ steps.get_version.outputs.VERSION }}.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          body: |
+            ## QField Render Sync Plugin ${{ steps.get_version.outputs.VERSION }}
+            
+            ### Installation
+            
+            **Option 1: Install from URL**
+            1. Open QField → Settings → Plugins
+            2. Click "Install from URL"
+            3. Enter: `https://github.com/${{ github.repository }}/releases/download/${{ steps.get_version.outputs.VERSION }}/qfield-render-sync-${{ steps.get_version.outputs.VERSION }}.zip`
+            4. Click Install
+            
+            **Option 2: Manual Install**
+            1. Download the ZIP file below
+            2. Transfer to your device
+            3. QField → Settings → Plugins → Install from file
+            4. Select the ZIP file
+            
+            ### Documentation
+            - [User Guide](https://github.com/${{ github.repository }}/blob/main/docs/README.md)
+            - [Quick Start](https://github.com/${{ github.repository }}/blob/main/docs/QUICKSTART.md)
+            - [Deployment Guide](https://github.com/${{ github.repository }}/blob/main/docs/DEPLOYMENT.md)
+            
+            ### Requirements
+            - QField 3.0+
+            - QField Photo Sync API (backend)
+            - WebDAV server for photo storage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
