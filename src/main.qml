@@ -404,7 +404,7 @@ Item {
         id: syncDialogLoader
         active: false
         asynchronous: false  // Changed to synchronous for better error messages
-        source: "components/SyncDialog.qml"  // Back to real dialog
+        source: "components/SyncDialog_Simple.qml"  // Using simplified dialog
         
         onLoaded: {
             console.log("[Render Sync] Loader onLoaded triggered")
