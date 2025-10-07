@@ -130,11 +130,10 @@ try {
     # List main components
     Write-Host ""
     Write-Host "Components included:" -ForegroundColor Yellow
-    Write-Host "  • Main plugin (main.qml)" -ForegroundColor Gray
-    Write-Host "  • UI components (components/)" -ForegroundColor Gray
-    Write-Host "  • JavaScript modules (js/)" -ForegroundColor Gray
-    Write-Host "  • Documentation (5 files)" -ForegroundColor Gray
-    Write-Host "  • Metadata and icon" -ForegroundColor Gray
+    Write-Host "  - Main plugin (main.qml)" -ForegroundColor Gray
+    Write-Host "  - UI components (components/)" -ForegroundColor Gray
+    Write-Host "  - JavaScript modules (js/)" -ForegroundColor Gray
+    Write-Host "  - Metadata and icon" -ForegroundColor Gray
     
 } catch {
     Write-Host ""
@@ -166,7 +165,7 @@ Write-Host "   - Set project variables" -ForegroundColor Gray
 Write-Host "   - Push to QFieldCloud" -ForegroundColor Gray
 Write-Host ""
 Write-Host "4. Install on mobile devices:" -ForegroundColor Yellow
-Write-Host "   - QField → Settings → Plugins" -ForegroundColor Gray
+Write-Host "   - QField - Settings - Plugins" -ForegroundColor Gray
 Write-Host "   - Install from URL or file" -ForegroundColor Gray
 Write-Host ""
 Write-Host "See DEPLOYMENT.md for detailed instructions." -ForegroundColor Cyan
