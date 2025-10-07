@@ -8,23 +8,8 @@
  * 3. Update database via API
  * 4. Update local layer
  * 
- * Note: This module must be imported alongside WebDAV and API modules
- * Functions are called with namespace prefixes (WebDAV.*, API.*)
+ * Note: WebDAV and API modules must be passed as parameters to functions
  */
-
-// Import references (set by QML context)
-var WebDAV = null;
-var API = null;
-
-/**
- * Initialize with module references
- * @param {object} webdavModule - WebDAV client module
- * @param {object} apiModule - API client module
- */
-function initialize(webdavModule, apiModule) {
-    WebDAV = webdavModule;
-    API = apiModule;
-}
 
 /**
  * Check if path is a local file path (not a URL)
@@ -123,10 +108,12 @@ function findPendingPhotos(layer, photoField) {
  * @param {object} photoData - Photo data object
  * @param {object} config - Configuration object
  * @param {object} layer - Vector layer
+ * @param {object} webdavModule - WebDAV module reference
+ * @param {object} apiModule - API module reference
  * @param {function} onProgress - Progress callback(percent, status)
  * @param {function} onComplete - Completion callback(success, photoUrl, error)
  */
-function syncPhoto(photoData, config, layer, onProgress, onComplete) {
+function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress, onComplete) {
     var globalId = photoData.globalId;
     var localPath = photoData.localPath;
     
@@ -135,7 +122,7 @@ function syncPhoto(photoData, config, layer, onProgress, onComplete) {
     // Step 1: Upload to WebDAV
     if (onProgress) onProgress(0, 'Uploading to WebDAV...');
     
-    WebDAV.uploadPhotoWithCheck(
+    webdavModule.uploadPhotoWithCheck(
         localPath,
         globalId,
         config.webdavUrl,
@@ -154,7 +141,7 @@ function syncPhoto(photoData, config, layer, onProgress, onComplete) {
             // Step 2: Update database via API
             if (onProgress) onProgress(70, 'Updating database...');
             
-            API.updatePhotoWithRetry(
+            apiModule.updatePhotoWithRetry(
                 config.apiUrl,
                 config.apiToken,
                 globalId,
@@ -197,11 +184,13 @@ function syncPhoto(photoData, config, layer, onProgress, onComplete) {
  * @param {array} pendingPhotos - Array of photo data objects
  * @param {object} config - Configuration object
  * @param {object} layer - Vector layer
+ * @param {object} webdavModule - WebDAV module reference
+ * @param {object} apiModule - API module reference
  * @param {function} onPhotoProgress - Progress callback(photoIndex, totalPhotos, percent, status)
  * @param {function} onPhotoComplete - Photo completion callback(photoIndex, success, error)
  * @param {function} onAllComplete - All photos completion callback(results)
  */
-function syncAllPhotos(pendingPhotos, config, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
+function syncAllPhotos(pendingPhotos, config, layer, webdavModule, apiModule, onPhotoProgress, onPhotoComplete, onAllComplete) {
     if (!pendingPhotos || pendingPhotos.length === 0) {
         console.log('[Sync] No photos to sync');
         onAllComplete({
@@ -237,6 +226,8 @@ function syncAllPhotos(pendingPhotos, config, layer, onPhotoProgress, onPhotoCom
             photoData,
             config,
             layer,
+            webdavModule,
+            apiModule,
             function(percent, status) {
                 if (onPhotoProgress) {
                     onPhotoProgress(photoIndex, results.total, percent, status);
@@ -330,9 +321,11 @@ function validateSyncPrerequisites(config, layer) {
 /**
  * Test all connections
  * @param {object} config - Configuration object
+ * @param {object} webdavModule - WebDAV module reference
+ * @param {object} apiModule - API module reference
  * @param {function} callback - Callback(results)
  */
-function testConnections(config, callback) {
+function testConnections(config, webdavModule, apiModule, callback) {
     var results = {
         webdav: { success: false, error: null },
         api: { success: false, error: null }
@@ -348,7 +341,7 @@ function testConnections(config, callback) {
     }
     
     // Test WebDAV
-    WebDAV.testConnection(
+    webdavModule.testConnection(
         config.webdavUrl,
         config.webdavUsername,
         config.webdavPassword,
@@ -360,7 +353,7 @@ function testConnections(config, callback) {
     );
     
     // Test API
-    API.testConnection(
+    apiModule.testConnection(
         config.apiUrl,
         config.apiToken,
         function(success, error) {

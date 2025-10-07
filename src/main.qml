@@ -49,10 +49,6 @@ Item {
     Component.onCompleted: {
         console.log("[Render Sync] Plugin loading...")
         
-        // Initialize sync engine with module references
-        SyncEngine.initialize(WebDAV, API)
-        console.log("[Render Sync] Sync engine initialized")
-        
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
             iface.addItemToPluginsToolbar(syncButton)
@@ -292,42 +288,8 @@ Item {
             return
         }
         
-        var results = {
-            webdav: { success: false, error: null },
-            api: { success: false, error: null }
-        }
-        
-        var completed = 0
-        
-        function checkComplete() {
-            completed++
-            if (completed === 2) {
-                callback(results)
-            }
-        }
-        
-        // Test WebDAV
-        WebDAV.testConnection(
-            config.webdavUrl,
-            config.webdavUsername,
-            config.webdavPassword,
-            function(success, error) {
-                results.webdav.success = success
-                results.webdav.error = error
-                checkComplete()
-            }
-        )
-        
-        // Test API
-        API.testConnection(
-            config.apiUrl,
-            config.apiToken,
-            function(success, error) {
-                results.api.success = success
-                results.api.error = error
-                checkComplete()
-            }
-        )
+        // Use SyncEngine's testConnections function
+        SyncEngine.testConnections(config, WebDAV, API, callback)
     }
     
     // Toolbar Button

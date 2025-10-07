@@ -80,9 +80,6 @@ Popup {
     
     // Reset state when dialog opens
     onOpened: {
-        // Initialize sync engine with module references
-        SyncEngine.initialize(WebDAV, API)
-        
         resetState()
         loadLayers()
         updatePendingCount()
@@ -177,6 +174,8 @@ Popup {
             pendingPhotos,
             config,
             selectedLayer,
+            WebDAV,
+            API,
             onPhotoProgress,
             onPhotoComplete,
             onAllComplete
