@@ -8,8 +8,10 @@
 
 import QtQuick 2.12
 import QtQuick.Controls 2.12
+import QtQuick.Layouts 1.12
 import org.qfield 1.0
 import org.qgis 1.0
+import Theme 1.0
 
 import "js/utils.js" as Utils
 import "js/webdav_client.js" as WebDAV
@@ -18,6 +20,11 @@ import "js/sync_engine.js" as SyncEngine
 
 Item {
     id: plugin
+    
+    // Make plugin visible in QField
+    visible: true
+    width: parent ? parent.width : 0
+    height: parent ? parent.height : 0
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
@@ -56,14 +63,8 @@ Item {
         
         console.log("[Render Sync] Plugin loaded v" + pluginVersion)
         
-        // Create toolbar button
-        var button = toolbarButtonComponent.createObject(plugin)
-        
-        // Add to QField toolbar (if available)
-        if (iface && iface.mainWindow() && iface.mainWindow().addItemToPluginsToolbar) {
-            iface.mainWindow().addItemToPluginsToolbar(button)
-            console.log("[Render Sync] Toolbar button added")
-        }
+        // Show the floating button
+        floatingButton.visible = true
     }
     
     /**
@@ -211,6 +212,53 @@ Item {
         )
     }
     
+    // Floating Action Button
+    Rectangle {
+        id: floatingButton
+        visible: false
+        width: 120
+        height: 50
+        radius: 25
+        color: plugin.configValid ? "#4CAF50" : "#999999"
+        opacity: plugin.configValid ? 1.0 : 0.6
+        
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 20
+        anchors.bottomMargin: 100
+        
+        border.color: "#388E3C"
+        border.width: 2
+        
+        MouseArea {
+            anchors.fill: parent
+            enabled: plugin.configValid
+            onClicked: {
+                console.log("[Render Sync] Button clicked")
+                plugin.openSyncDialog()
+            }
+        }
+        
+        RowLayout {
+            anchors.centerIn: parent
+            spacing: 8
+            
+            Image {
+                source: Qt.resolvedUrl("icon.svg")
+                width: 24
+                height: 24
+                fillMode: Image.PreserveAspectFit
+            }
+            
+            Text {
+                text: "Sync"
+                font.pixelSize: 16
+                font.bold: true
+                color: "white"
+            }
+        }
+    }
+    
     // Sync Dialog Loader
     Loader {
         id: syncDialogLoader
@@ -222,57 +270,6 @@ Item {
             if (item) {
                 item.plugin = plugin
                 item.config = plugin.config
-            }
-        }
-    }
-    
-    // Toolbar button component
-    Component {
-        id: toolbarButtonComponent
-        
-        Button {
-            id: syncButton
-            text: "Sync Photos"
-            icon.source: Qt.resolvedUrl("icon.svg")
-            enabled: plugin.configValid && !plugin.syncInProgress
-            
-            ToolTip.visible: hovered
-            ToolTip.text: plugin.configValid ? 
-                         "Sync photos to Render WebDAV and database" :
-                         "Configuration incomplete: " + plugin.configErrors.join(", ")
-            
-            onClicked: {
-                plugin.openSyncDialog()
-            }
-            
-            // Visual feedback for sync in progress
-            opacity: enabled ? 1.0 : 0.5
-            
-            // Styling
-            background: Rectangle {
-                color: syncButton.pressed ? "#45a049" : (syncButton.hovered ? "#4CAF50" : "#5cb85c")
-                radius: 4
-                border.color: "#4CAF50"
-                border.width: 1
-            }
-            
-            contentItem: Row {
-                spacing: 8
-                
-                Image {
-                    source: Qt.resolvedUrl("icon.svg")
-                    width: 24
-                    height: 24
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-                
-                Text {
-                    text: syncButton.text
-                    color: "white"
-                    font.pixelSize: 14
-                    font.bold: true
-                    anchors.verticalCenter: parent.verticalCenter
-                }
             }
         }
     }
