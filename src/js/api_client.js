@@ -1,3 +1,5 @@
+.pragma library
+
 /**
  * REST API Client
  * ================
@@ -5,8 +7,6 @@
  * Handles communication with the Render Sync API.
  * Manages photo URL updates in PostgreSQL database.
  */
-
-// Note: Utils functions will be available from the importing QML context
 
 /**
  * Parse error message from response

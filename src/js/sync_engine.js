@@ -1,3 +1,5 @@
+.pragma library
+
 /**
  * Sync Engine
  * ============
