@@ -218,48 +218,87 @@ Item {
      * Open sync dialog or token configuration
      */
     function openSyncDialog() {
-        console.log("[Render Sync] openSyncDialog called - tokenConfigured=" + tokenConfigured + ", configValid=" + configValid)
+        console.log("[Render Sync] ========== OPEN SYNC DIALOG ==========")
+        console.log("[Render Sync] tokenConfigured:", tokenConfigured)
+        console.log("[Render Sync] configValid:", configValid)
+        console.log("[Render Sync] syncInProgress:", syncInProgress)
         
-        if (!tokenConfigured || userToken === "") {
-            console.log("[Render Sync] Opening token dialog - no token")
-            openTokenDialog()
-            return
-        }
-        
-        if (!configValid) {
-            console.log("[Render Sync] Opening token dialog - config invalid")
-            displayToast("Configuration incomplete. Please check your token.", "error")
-            openTokenDialog()
-            return
-        }
-        
-        if (syncInProgress) {
-            console.log("[Render Sync] Sync already in progress")
-            displayToast("Sync already in progress", "warning")
-            return
-        }
-        
-        console.log("[Render Sync] Opening sync dialog...")
-        
-        // Load sync dialog
-        syncDialogLoader.active = true
-        
-        // Wait for loader to be ready
-        if (syncDialogLoader.status === Loader.Ready && syncDialogLoader.item) {
-            console.log("[Render Sync] Sync dialog ready, opening...")
-            syncDialogLoader.item.open()
-        } else {
-            console.log("[Render Sync] Sync dialog not ready yet, status=" + syncDialogLoader.status)
-            // Try again after a short delay
-            Qt.callLater(function() {
-                if (syncDialogLoader.item) {
-                    console.log("[Render Sync] Sync dialog ready after delay, opening...")
-                    syncDialogLoader.item.open()
+        try {
+            // Validate prerequisites
+            if (!tokenConfigured || userToken === "") {
+                console.log("[Render Sync] No token configured")
+                displayToast("Please enter your API token first", "warning")
+                openTokenDialog()
+                return
+            }
+            
+            if (!configValid) {
+                console.log("[Render Sync] Configuration invalid")
+                console.log("[Render Sync] Config errors:", configErrors.join(", "))
+                displayToast("Configuration incomplete: " + configErrors.join(", "), "error")
+                openTokenDialog()
+                return
+            }
+            
+            if (syncInProgress) {
+                console.log("[Render Sync] Sync already in progress")
+                displayToast("Sync already in progress", "warning")
+                return
+            }
+            
+            // Validate iface
+            if (!iface || !iface.mainWindow()) {
+                console.log("[Render Sync] ERROR: iface or mainWindow not available")
+                displayToast("QField interface not ready", "error")
+                return
+            }
+            
+            console.log("[Render Sync] Loading sync dialog...")
+            console.log("[Render Sync] Loader status before activation:", syncDialogLoader.status)
+            
+            // Activate loader
+            syncDialogLoader.active = true
+            
+            // Wait for loading
+            var maxAttempts = 10
+            var attempt = 0
+            
+            function tryOpen() {
+                attempt++
+                console.log("[Render Sync] Attempt", attempt, "- Loader status:", syncDialogLoader.status)
+                
+                if (syncDialogLoader.status === Loader.Ready) {
+                    if (syncDialogLoader.item) {
+                        console.log("[Render Sync] Dialog loaded successfully, opening...")
+                        try {
+                            syncDialogLoader.item.open()
+                            console.log("[Render Sync] Dialog opened")
+                        } catch (e) {
+                            console.log("[Render Sync] ERROR opening dialog:", e)
+                            displayToast("Error opening dialog: " + e, "error")
+                        }
+                    } else {
+                        console.log("[Render Sync] ERROR: Loader ready but item is null")
+                        displayToast("Dialog failed to load (null item)", "error")
+                    }
+                } else if (syncDialogLoader.status === Loader.Error) {
+                    console.log("[Render Sync] ERROR: Loader failed with error status")
+                    displayToast("Failed to load sync dialog - check logs", "error")
+                } else if (attempt < maxAttempts) {
+                    // Try again
+                    Qt.callLater(tryOpen)
                 } else {
-                    console.log("[Render Sync] ERROR: Sync dialog failed to load")
-                    displayToast("Error loading sync dialog", "error")
+                    console.log("[Render Sync] ERROR: Timeout waiting for dialog to load")
+                    displayToast("Timeout loading dialog", "error")
                 }
-            })
+            }
+            
+            tryOpen()
+            
+        } catch (e) {
+            console.log("[Render Sync] EXCEPTION in openSyncDialog:", e)
+            console.log("[Render Sync] Stack:", e.stack)
+            displayToast("Error: " + e, "error")
         }
     }
     
@@ -337,18 +376,48 @@ Item {
         source: "components/SyncDialog.qml"
         
         onLoaded: {
-            if (item) {
-                item.plugin = plugin
-                item.config = plugin.config
-                item.parent = iface.mainWindow().contentItem
-                console.log("[Render Sync] Sync dialog loaded successfully")
+            console.log("[Render Sync] Loader onLoaded triggered")
+            try {
+                if (item) {
+                    console.log("[Render Sync] Setting dialog properties...")
+                    item.plugin = plugin
+                    item.config = plugin.config
+                    
+                    if (iface && iface.mainWindow() && iface.mainWindow().contentItem) {
+                        item.parent = iface.mainWindow().contentItem
+                        console.log("[Render Sync] Dialog parent set successfully")
+                    } else {
+                        console.log("[Render Sync] WARNING: Could not set parent - iface not ready")
+                    }
+                    
+                    console.log("[Render Sync] Sync dialog loaded successfully")
+                } else {
+                    console.log("[Render Sync] ERROR: onLoaded but item is null")
+                }
+            } catch (e) {
+                console.log("[Render Sync] EXCEPTION in onLoaded:", e)
+                console.log("[Render Sync] Stack:", e.stack)
             }
         }
         
         onStatusChanged: {
-            if (status === Loader.Error) {
-                console.log("[Render Sync] ERROR: Failed to load SyncDialog.qml")
-                console.log("[Render Sync] Error:", syncDialogLoader.sourceComponent)
+            console.log("[Render Sync] Loader status changed to:", status)
+            if (status === Loader.Null) {
+                console.log("[Render Sync] Status: Null - no source set")
+            } else if (status === Loader.Ready) {
+                console.log("[Render Sync] Status: Ready - component loaded")
+            } else if (status === Loader.Loading) {
+                console.log("[Render Sync] Status: Loading...")
+            } else if (status === Loader.Error) {
+                console.log("[Render Sync] Status: ERROR - Failed to load component")
+                console.log("[Render Sync] Source:", source)
+                if (sourceComponent) {
+                    console.log("[Render Sync] Source component:", sourceComponent)
+                    console.log("[Render Sync] Component status:", sourceComponent.status)
+                    if (sourceComponent.errorString) {
+                        console.log("[Render Sync] Error string:", sourceComponent.errorString())
+                    }
+                }
             }
         }
     }

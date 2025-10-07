@@ -43,6 +43,14 @@ Popup {
     property int failureCount: 0
     property var errors: []
     
+    // Component initialization
+    Component.onCompleted: {
+        console.log("[SyncDialog] Component completed")
+        console.log("[SyncDialog] Plugin:", plugin)
+        console.log("[SyncDialog] Config:", JSON.stringify(config))
+        console.log("[SyncDialog] Parent:", parent)
+    }
+    
     // Header with title and close button
     header: Rectangle {
         width: parent.width
@@ -80,9 +88,16 @@ Popup {
     
     // Reset state when dialog opens
     onOpened: {
-        resetState()
-        loadLayers()
-        updatePendingCount()
+        console.log("[SyncDialog] Dialog opened")
+        try {
+            resetState()
+            loadLayers()
+            updatePendingCount()
+            console.log("[SyncDialog] Initialization complete")
+        } catch (e) {
+            console.log("[SyncDialog] ERROR in onOpened:", e)
+            console.log("[SyncDialog] Stack:", e.stack)
+        }
     }
     
     /**
