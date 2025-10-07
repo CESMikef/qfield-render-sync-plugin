@@ -49,6 +49,10 @@ Item {
     Component.onCompleted: {
         console.log("[Render Sync] Plugin loading...")
         
+        // Initialize sync engine with module references
+        SyncEngine.initialize(WebDAV, API)
+        console.log("[Render Sync] Sync engine initialized")
+        
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
             iface.addItemToPluginsToolbar(syncButton)

@@ -279,7 +279,7 @@ function testConnection(url, username, password, callback) {
             } else if (xhr.status === 401) {
                 callback(false, 'Authentication failed - check username/password');
             } else {
-                var error = Utils.parseErrorMessage(xhr);
+                var error = parseErrorMessage(xhr);
                 callback(false, error);
             }
         }

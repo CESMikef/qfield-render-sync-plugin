@@ -49,9 +49,9 @@ function sanitizeFilename(filename) {
  */
 function generatePhotoFilename(globalId, extension) {
     extension = extension || 'jpg';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
+    var timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0] + '_' + 
                       new Date().toISOString().replace(/[:.]/g, '-').split('T')[1].split('Z')[0];
-    const sanitizedId = sanitizeFilename(globalId);
+    var sanitizedId = sanitizeFilename(globalId);
     return sanitizedId + '_' + timestamp + '.' + extension;
 }
 
@@ -82,7 +82,7 @@ function parseProjectVariables(project) {
  * @returns {object} - {valid: boolean, missing: array}
  */
 function validateConfiguration(config) {
-    const required = [
+    var required = [
         'webdavUrl',
         'webdavUsername',
         'webdavPassword',
@@ -90,10 +90,10 @@ function validateConfiguration(config) {
         'apiToken'
     ];
     
-    const missing = [];
+    var missing = [];
     
-    for (let i = 0; i < required.length; i++) {
-        const key = required[i];
+    for (var i = 0; i < required.length; i++) {
+        var key = required[i];
         if (!config[key] || config[key].trim() === '') {
             missing.push(key);
         }
@@ -132,7 +132,7 @@ function isLocalPath(path) {
 function getFileExtension(path) {
     if (!path) return '';
     
-    const parts = path.split('.');
+    var parts = path.split('.');
     if (parts.length > 1) {
         return parts[parts.length - 1].toLowerCase();
     }
@@ -147,9 +147,9 @@ function getFileExtension(path) {
 function formatFileSize(bytes) {
     if (bytes === 0) return '0 B';
     
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    var k = 1024;
+    var sizes = ['B', 'KB', 'MB', 'GB'];
+    var i = Math.floor(Math.log(bytes) / Math.log(k));
     
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
@@ -160,7 +160,7 @@ function formatFileSize(bytes) {
  * @param {string} message - Log message
  */
 function log(level, message) {
-    const timestamp = new Date().toISOString();
+    var timestamp = new Date().toISOString();
     console.log('[' + timestamp + '] [' + level + '] ' + message);
 }
 
@@ -182,7 +182,7 @@ function createBasicAuth(username, password) {
 function parseErrorMessage(response) {
     try {
         if (response.responseText) {
-            const data = JSON.parse(response.responseText);
+            var data = JSON.parse(response.responseText);
             if (data.error) return data.error;
             if (data.detail) return data.detail;
             if (data.message) return data.message;

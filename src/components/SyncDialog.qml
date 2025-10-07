@@ -80,6 +80,9 @@ Popup {
     
     // Reset state when dialog opens
     onOpened: {
+        // Initialize sync engine with module references
+        SyncEngine.initialize(WebDAV, API)
+        
         resetState()
         loadLayers()
         updatePendingCount()
@@ -314,6 +317,7 @@ Popup {
                 spacing: 8
                 
                 Button {
+                    id: testButton
                     text: "Test Connections"
                     Layout.fillWidth: true
                     enabled: !syncing
@@ -331,10 +335,6 @@ Popup {
                             
                             connectionStatus.text = status
                         })
-                    }
-                    
-                    Button {
-                        id: testButton
                     }
                 }
                 

@@ -8,11 +8,23 @@
  * 3. Update database via API
  * 4. Update local layer
  * 
- * Note: This module is imported by QML and has access to:
- * - WebDAV client functions
- * - API client functions
- * - Utility functions
+ * Note: This module must be imported alongside WebDAV and API modules
+ * Functions are called with namespace prefixes (WebDAV.*, API.*)
  */
+
+// Import references (set by QML context)
+var WebDAV = null;
+var API = null;
+
+/**
+ * Initialize with module references
+ * @param {object} webdavModule - WebDAV client module
+ * @param {object} apiModule - API client module
+ */
+function initialize(webdavModule, apiModule) {
+    WebDAV = webdavModule;
+    API = apiModule;
+}
 
 /**
  * Check if path is a local file path (not a URL)
@@ -123,7 +135,7 @@ function syncPhoto(photoData, config, layer, onProgress, onComplete) {
     // Step 1: Upload to WebDAV
     if (onProgress) onProgress(0, 'Uploading to WebDAV...');
     
-    uploadPhotoWithCheck(
+    WebDAV.uploadPhotoWithCheck(
         localPath,
         globalId,
         config.webdavUrl,
@@ -142,7 +154,7 @@ function syncPhoto(photoData, config, layer, onProgress, onComplete) {
             // Step 2: Update database via API
             if (onProgress) onProgress(70, 'Updating database...');
             
-            updatePhotoWithRetry(
+            API.updatePhotoWithRetry(
                 config.apiUrl,
                 config.apiToken,
                 globalId,
@@ -336,7 +348,7 @@ function testConnections(config, callback) {
     }
     
     // Test WebDAV
-    testConnection(
+    WebDAV.testConnection(
         config.webdavUrl,
         config.webdavUsername,
         config.webdavPassword,
@@ -348,7 +360,7 @@ function testConnections(config, callback) {
     );
     
     // Test API
-    testConnectionAPI(
+    API.testConnection(
         config.apiUrl,
         config.apiToken,
         function(success, error) {

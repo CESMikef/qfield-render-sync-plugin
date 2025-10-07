@@ -180,7 +180,7 @@ function getPhotoStatus(apiUrl, token, globalId, table, callback) {
             } else if (xhr.status === 404) {
                 callback(false, null, 'Feature not found');
             } else {
-                var error = Utils.parseErrorMessage(xhr);
+                var error = parseErrorMessage(xhr);
                 callback(false, null, error);
             }
         }
@@ -230,7 +230,7 @@ function testConnection(apiUrl, token, callback) {
                     callback(false, 'Invalid API response');
                 }
             } else {
-                var error = Utils.parseErrorMessage(xhr);
+                var error = parseErrorMessage(xhr);
                 callback(false, error);
             }
         }
