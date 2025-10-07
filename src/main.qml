@@ -33,13 +33,16 @@ Item {
     // Project reference
     property var qfProject: iface ? iface.project() : null
     
-    // Configuration loaded from project variables
+    // Configuration loaded from API
     property var config: ({})
     property bool configValid: false
     property var configErrors: []
+    property string userToken: ""
+    property bool tokenConfigured: false
     
     // UI state
     property bool syncInProgress: false
+    property bool loadingConfig: false
     
     /**
      * Initialize plugin on load
@@ -47,62 +50,125 @@ Item {
     Component.onCompleted: {
         console.log("[Render Sync] Plugin loading...")
         
-        // Load configuration from project variables
-        loadConfiguration()
-        
-        // Validate configuration
-        validateConfiguration()
-        
-        if (configValid) {
-            console.log("[Render Sync] Configuration loaded successfully")
-            displayToast("Render Sync plugin loaded", "success")
-        } else {
-            console.log("[Render Sync] Configuration incomplete: " + configErrors.join(", "))
-            displayToast("Render Sync: Configuration incomplete", "warning")
-        }
-        
-        console.log("[Render Sync] Plugin loaded v" + pluginVersion)
-        
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
             iface.addItemToPluginsToolbar(syncButton)
             console.log("[Render Sync] Button added to plugins toolbar")
         }
+        
+        // Load saved token from settings
+        loadSavedToken()
+        
+        if (userToken && userToken !== "") {
+            // Fetch configuration from API
+            fetchConfigurationFromAPI()
+        } else {
+            console.log("[Render Sync] No token configured")
+            displayToast("Render Sync: Please configure your token", "warning")
+        }
+        
+        console.log("[Render Sync] Plugin loaded v" + pluginVersion)
     }
     
     /**
-     * Load configuration from project variables
+     * Load saved token from QField settings
      */
-    function loadConfiguration() {
-        if (!qfProject) {
-            console.log("[Render Sync] No project available")
+    function loadSavedToken() {
+        if (qfProject) {
+            userToken = qfProject.readEntry("render_sync", "user_token", "")
+            tokenConfigured = userToken && userToken !== ""
+            console.log("[Render Sync] Token " + (tokenConfigured ? "found" : "not found"))
+        }
+    }
+    
+    /**
+     * Save token to QField settings
+     */
+    function saveToken(token) {
+        if (qfProject) {
+            qfProject.writeEntry("render_sync", "user_token", token)
+            userToken = token
+            tokenConfigured = true
+            console.log("[Render Sync] Token saved")
+        }
+    }
+    
+    /**
+     * Fetch configuration from API using token
+     */
+    function fetchConfigurationFromAPI() {
+        if (!userToken || userToken === "") {
+            console.log("[Render Sync] No token available")
+            configValid = false
             return
         }
         
-        config = {
-            webdavUrl: qfProject.readEntry("render_sync", "webdav_url", "") || 
-                       qfProject.customVariable("render_webdav_url") || "",
-            webdavUsername: qfProject.readEntry("render_sync", "webdav_username", "") ||
-                           qfProject.customVariable("render_webdav_username") || "",
-            webdavPassword: qfProject.readEntry("render_sync", "webdav_password", "") ||
-                           qfProject.customVariable("render_webdav_password") || "",
-            apiUrl: qfProject.readEntry("render_sync", "api_url", "") ||
-                   qfProject.customVariable("render_api_url") || "",
-            apiToken: qfProject.readEntry("render_sync", "api_token", "") ||
-                     qfProject.customVariable("render_api_token") || "",
-            dbTable: qfProject.readEntry("render_sync", "db_table", "design.verify_poles") ||
-                    qfProject.customVariable("render_db_table") || "design.verify_poles",
-            photoField: qfProject.readEntry("render_sync", "photo_field", "photo") ||
-                       qfProject.customVariable("render_photo_field") || "photo"
+        loadingConfig = true
+        console.log("[Render Sync] Fetching configuration from API...")
+        
+        // Get API base URL from project or use default
+        var apiBaseUrl = qfProject ? 
+                        (qfProject.customVariable("render_api_base_url") || "https://ces-qgis-qfield-v1.onrender.com") :
+                        "https://ces-qgis-qfield-v1.onrender.com"
+        
+        var xhr = new XMLHttpRequest()
+        xhr.open("GET", apiBaseUrl + "/api/config?token=" + userToken, true)
+        xhr.setRequestHeader("Authorization", "Bearer " + userToken)
+        
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                loadingConfig = false
+                
+                if (xhr.status === 200) {
+                    try {
+                        var response = JSON.parse(xhr.responseText)
+                        config = {
+                            webdavUrl: response.webdav_url || response.DB_HOST || "",
+                            webdavUsername: response.webdav_username || response.DB_USER || "",
+                            webdavPassword: response.webdav_password || response.DB_PASSWORD || "",
+                            apiUrl: apiBaseUrl,
+                            apiToken: userToken,
+                            dbTable: response.db_table || response.ALLOWED_SCHEMA || "design.verify_poles",
+                            photoField: response.photo_field || "photo",
+                            dbPoolSize: response.DB_POOL_SIZE || 10
+                        }
+                        
+                        validateConfiguration()
+                        
+                        if (configValid) {
+                            console.log("[Render Sync] Configuration loaded successfully from API")
+                            displayToast("Configuration loaded successfully", "success")
+                        } else {
+                            console.log("[Render Sync] Configuration incomplete: " + configErrors.join(", "))
+                            displayToast("Configuration incomplete", "warning")
+                        }
+                    } catch (e) {
+                        console.log("[Render Sync] Error parsing API response: " + e)
+                        displayToast("Error loading configuration", "error")
+                        configValid = false
+                    }
+                } else if (xhr.status === 401 || xhr.status === 403) {
+                    console.log("[Render Sync] Invalid token")
+                    displayToast("Invalid token. Please reconfigure.", "error")
+                    configValid = false
+                    userToken = ""
+                    tokenConfigured = false
+                } else {
+                    console.log("[Render Sync] API error: " + xhr.status)
+                    displayToast("Error connecting to API", "error")
+                    configValid = false
+                }
+            }
         }
         
-        console.log("[Render Sync] Configuration loaded:")
-        console.log("  WebDAV URL: " + (config.webdavUrl ? "✓" : "✗"))
-        console.log("  WebDAV Username: " + (config.webdavUsername ? "✓" : "✗"))
-        console.log("  API URL: " + (config.apiUrl ? "✓" : "✗"))
-        console.log("  API Token: " + (config.apiToken ? "✓" : "✗"))
-        console.log("  DB Table: " + config.dbTable)
-        console.log("  Photo Field: " + config.photoField)
+        xhr.onerror = function() {
+            loadingConfig = false
+            console.log("[Render Sync] Network error fetching configuration")
+            displayToast("Network error", "error")
+            configValid = false
+        }
+        
+        xhr.send()
     }
     
     /**
@@ -142,11 +208,18 @@ Item {
     }
     
     /**
-     * Open sync dialog
+     * Open sync dialog or token configuration
      */
     function openSyncDialog() {
+        if (!tokenConfigured || userToken === "") {
+            // Show token configuration dialog
+            openTokenDialog()
+            return
+        }
+        
         if (!configValid) {
-            displayToast("Configuration incomplete. Missing: " + configErrors.join(", "), "error")
+            displayToast("Configuration incomplete. Please check your token.", "error")
+            openTokenDialog()
             return
         }
         
@@ -162,6 +235,19 @@ Item {
         
         if (syncDialogLoader.item) {
             syncDialogLoader.item.open()
+        }
+    }
+    
+    /**
+     * Open token configuration dialog
+     */
+    function openTokenDialog() {
+        if (tokenDialogLoader.status !== Loader.Ready) {
+            tokenDialogLoader.active = true
+        }
+        
+        if (tokenDialogLoader.item) {
+            tokenDialogLoader.item.open()
         }
     }
     
@@ -235,6 +321,21 @@ Item {
         ToolTip.text: plugin.configValid ? 
                      qsTr("Sync photos to Render WebDAV and database") :
                      qsTr("Configuration incomplete: ") + plugin.configErrors.join(", ")
+    }
+    
+    // Token Dialog Loader
+    Loader {
+        id: tokenDialogLoader
+        active: false
+        asynchronous: true
+        source: "components/TokenDialog.qml"
+        
+        onLoaded: {
+            if (item) {
+                item.plugin = plugin
+                item.parent = iface.mainWindow().contentItem
+            }
+        }
     }
     
     // Sync Dialog Loader
