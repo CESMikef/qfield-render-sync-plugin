@@ -12,11 +12,6 @@ import QtQuick.Layouts 1.12
 import org.qfield 1.0
 import org.qgis 1.0
 
-import "../js/utils.js" as Utils
-import "../js/webdav_client.js" as WebDAV
-import "../js/api_client.js" as API
-import "../js/sync_engine.js" as SyncEngine
-
 Popup {
     id: syncDialog
     
@@ -155,8 +150,28 @@ Popup {
             return
         }
         
-        pendingPhotos = SyncEngine.findPendingPhotos(selectedLayer, config.photoField)
+        // Find pending photos manually (inline instead of using SyncEngine)
+        pendingPhotos = []
+        var features = selectedLayer.getFeatures()
+        
+        for (var i = 0; i < features.length; i++) {
+            var feature = features[i]
+            var photoPath = feature.attribute(config.photoField)
+            
+            // Check if it's a local path (not a URL)
+            if (photoPath && typeof photoPath === 'string') {
+                if (!/^https?:\/\//i.test(photoPath) && (/[\/\\]/.test(photoPath) || /^[a-zA-Z]:/.test(photoPath))) {
+                    pendingPhotos.push({
+                        feature: feature,
+                        globalId: feature.attribute('global_id') || feature.attribute('globalid') || feature.id().toString(),
+                        localPath: photoPath
+                    })
+                }
+            }
+        }
+        
         totalPhotos = pendingPhotos.length
+        console.log("[SyncDialog] Found " + totalPhotos + " pending photos")
     }
     
     /**
@@ -167,10 +182,9 @@ Popup {
             return
         }
         
-        // Validate prerequisites
-        var validation = SyncEngine.validateSyncPrerequisites(config, selectedLayer)
-        if (!validation.valid) {
-            errorDialog.text = "Cannot start sync:\n\n" + validation.errors.join("\n")
+        // Basic validation
+        if (!config.webdavUrl || !config.apiUrl) {
+            errorDialog.text = "Cannot start sync:\n\nConfiguration incomplete"
             errorDialog.open()
             return
         }
@@ -184,13 +198,10 @@ Popup {
         
         plugin.syncInProgress = true
         
-        // Start sync
-        SyncEngine.syncAllPhotos(
+        // Call plugin's sync function (which has access to the modules)
+        plugin.syncPhotos(
             pendingPhotos,
-            config,
             selectedLayer,
-            WebDAV,
-            API,
             onPhotoProgress,
             onPhotoComplete,
             onAllComplete

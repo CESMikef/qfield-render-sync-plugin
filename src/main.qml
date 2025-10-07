@@ -343,6 +343,25 @@ Item {
         SyncEngine.testConnections(config, WebDAV, API, callback)
     }
     
+    /**
+     * Sync photos (called from dialog)
+     */
+    function syncPhotos(pendingPhotos, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
+        console.log("[Render Sync] Starting sync of " + pendingPhotos.length + " photos")
+        
+        // Call SyncEngine with module references
+        SyncEngine.syncAllPhotos(
+            pendingPhotos,
+            config,
+            layer,
+            WebDAV,
+            API,
+            onPhotoProgress,
+            onPhotoComplete,
+            onAllComplete
+        )
+    }
+    
     // Toolbar Button
     Button {
         id: syncButton
@@ -385,7 +404,7 @@ Item {
         id: syncDialogLoader
         active: false
         asynchronous: false  // Changed to synchronous for better error messages
-        source: "components/SyncDialog_Test.qml"  // TESTING: Using minimal dialog
+        source: "components/SyncDialog.qml"  // Back to real dialog
         
         onLoaded: {
             console.log("[Render Sync] Loader onLoaded triggered")
