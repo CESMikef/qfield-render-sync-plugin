@@ -305,7 +305,7 @@ Item {
     Button {
         id: syncButton
         text: qsTr("Sync Photos")
-        enabled: plugin.configValid && !plugin.syncInProgress
+        enabled: !plugin.syncInProgress
         visible: true
         
         icon.source: Qt.resolvedUrl("icon.svg")
@@ -313,14 +313,14 @@ Item {
         display: AbstractButton.TextBesideIcon
         
         onClicked: {
-            console.log("[Render Sync] Button clicked")
+            console.log("[Render Sync] Button clicked, tokenConfigured=" + plugin.tokenConfigured + ", configValid=" + plugin.configValid)
             plugin.openSyncDialog()
         }
         
         ToolTip.visible: hovered
-        ToolTip.text: plugin.configValid ? 
-                     qsTr("Sync photos to Render WebDAV and database") :
-                     qsTr("Configuration incomplete: ") + plugin.configErrors.join(", ")
+        ToolTip.text: plugin.tokenConfigured ? 
+                     (plugin.configValid ? qsTr("Sync photos to Render") : qsTr("Click to reconfigure token")) :
+                     qsTr("Click to enter your API token")
     }
     
     // Token Dialog Loader
