@@ -12,7 +12,6 @@ import QtQuick.Layouts 1.12
 import org.qfield 1.0
 import org.qgis 1.0
 import Theme 1.0
-import Qt.labs.platform 1.0 as Platform
 
 import "js/utils.js" as Utils
 import "js/webdav_client.js" as WebDAV
@@ -71,36 +70,24 @@ Item {
     }
     
     /**
-     * Load saved token from local storage
+     * Load saved token (session-based for now)
      */
     function loadSavedToken() {
-        // Try to load from QField app settings
-        var storedToken = ""
-        
-        // Use QField's app settings if available
-        if (typeof qfieldSettings !== 'undefined') {
-            storedToken = qfieldSettings.value("RenderSync/token", "")
-        }
-        
-        userToken = storedToken || ""
-        tokenConfigured = userToken && userToken !== ""
-        console.log("[Render Sync] Token " + (tokenConfigured ? "found: " + userToken.substring(0, Math.min(8, userToken.length)) + "..." : "not found"))
+        // For now, token is only stored in memory during session
+        // User will need to re-enter token each time they restart QField
+        userToken = ""
+        tokenConfigured = false
+        console.log("[Render Sync] No persistent storage - token required each session")
     }
     
     /**
-     * Save token to local storage
+     * Save token (in memory for current session)
      */
     function saveToken(token) {
-        console.log("[Render Sync] Saving token: " + token.substring(0, Math.min(8, token.length)) + "...")
-        
-        // Save to QField app settings if available
-        if (typeof qfieldSettings !== 'undefined') {
-            qfieldSettings.setValue("RenderSync/token", token)
-        }
-        
+        console.log("[Render Sync] Saving token for current session: " + token.substring(0, Math.min(8, token.length)) + "...")
         userToken = token
         tokenConfigured = true
-        console.log("[Render Sync] Token saved successfully")
+        console.log("[Render Sync] Token saved in memory")
     }
     
     /**
