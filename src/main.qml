@@ -384,8 +384,8 @@ Item {
     Loader {
         id: syncDialogLoader
         active: false
-        asynchronous: true
-        source: "components/SyncDialog.qml"
+        asynchronous: false  // Changed to synchronous for better error messages
+        source: "components/SyncDialog_Test.qml"  // TESTING: Using minimal dialog
         
         onLoaded: {
             console.log("[Render Sync] Loader onLoaded triggered")
