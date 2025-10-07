@@ -55,6 +55,15 @@ Item {
         }
         
         console.log("[Render Sync] Plugin loaded v" + pluginVersion)
+        
+        // Create toolbar button
+        var button = toolbarButtonComponent.createObject(plugin)
+        
+        // Add to QField toolbar (if available)
+        if (iface && iface.mainWindow() && iface.mainWindow().addItemToPluginsToolbar) {
+            iface.mainWindow().addItemToPluginsToolbar(button)
+            console.log("[Render Sync] Toolbar button added")
+        }
     }
     
     /**
@@ -214,18 +223,6 @@ Item {
                 item.plugin = plugin
                 item.config = plugin.config
             }
-        }
-    }
-    
-    // Main toolbar button
-    Component.onCompleted: {
-        // Create toolbar button
-        var button = toolbarButtonComponent.createObject(plugin)
-        
-        // Add to QField toolbar (if available)
-        if (iface && iface.mainWindow() && iface.mainWindow().addItemToPluginsToolbar) {
-            iface.mainWindow().addItemToPluginsToolbar(button)
-            console.log("[Render Sync] Toolbar button added")
         }
     }
     
