@@ -9,7 +9,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
-import QtQuick.Dialogs 1.3
 import org.qfield 1.0
 import org.qgis 1.0
 
@@ -18,15 +17,17 @@ import "../js/webdav_client.js" as WebDAV
 import "../js/api_client.js" as API
 import "../js/sync_engine.js" as SyncEngine
 
-Dialog {
+Popup {
     id: syncDialog
     
-    title: "Sync Photos to Render"
     modal: true
-    standardButtons: Dialog.Close
+    closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     
-    width: Math.min(parent.width * 0.9, 600)
-    height: Math.min(parent.height * 0.8, 700)
+    width: parent ? Math.min(parent.width * 0.9, 600) : 600
+    height: parent ? Math.min(parent.height * 0.8, 700) : 700
+    
+    x: parent ? (parent.width - width) / 2 : 0
+    y: parent ? (parent.height - height) / 2 : 0
     
     // Properties passed from main plugin
     property var plugin: null
@@ -41,6 +42,41 @@ Dialog {
     property int successCount: 0
     property int failureCount: 0
     property var errors: []
+    
+    // Header with title and close button
+    header: Rectangle {
+        width: parent.width
+        height: 50
+        color: "#4CAF50"
+        
+        RowLayout {
+            anchors.fill: parent
+            anchors.margins: 10
+            
+            Label {
+                text: "Sync Photos to Render"
+                font.pixelSize: 18
+                font.bold: true
+                color: "white"
+                Layout.fillWidth: true
+            }
+            
+            Button {
+                text: "×"
+                font.pixelSize: 24
+                flat: true
+                onClicked: syncDialog.close()
+                
+                contentItem: Text {
+                    text: parent.text
+                    font: parent.font
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+    }
     
     // Reset state when dialog opens
     onOpened: {
