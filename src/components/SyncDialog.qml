@@ -485,18 +485,78 @@ Popup {
     }
     
     // Error dialog
-    MessageDialog {
+    Popup {
         id: errorDialog
-        title: "Sync Error"
-        icon: StandardIcon.Critical
-        standardButtons: StandardButton.Ok
+        property string text: ""
+        
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        
+        width: parent ? Math.min(parent.width * 0.8, 400) : 400
+        x: parent ? (parent.width - width) / 2 : 0
+        y: parent ? (parent.height - height) / 2 : 0
+        
+        ColumnLayout {
+            width: parent.width
+            spacing: 16
+            
+            Label {
+                text: "Sync Error"
+                font.pixelSize: 18
+                font.bold: true
+                color: "#F44336"
+                Layout.fillWidth: true
+            }
+            
+            Label {
+                text: errorDialog.text
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            
+            Button {
+                text: "OK"
+                Layout.alignment: Qt.AlignRight
+                onClicked: errorDialog.close()
+            }
+        }
     }
     
     // Result dialog
-    MessageDialog {
+    Popup {
         id: resultDialog
-        title: "Sync Results"
-        icon: StandardIcon.Information
-        standardButtons: StandardButton.Ok
+        property string text: ""
+        
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        
+        width: parent ? Math.min(parent.width * 0.8, 400) : 400
+        x: parent ? (parent.width - width) / 2 : 0
+        y: parent ? (parent.height - height) / 2 : 0
+        
+        ColumnLayout {
+            width: parent.width
+            spacing: 16
+            
+            Label {
+                text: "Sync Results"
+                font.pixelSize: 18
+                font.bold: true
+                color: "#4CAF50"
+                Layout.fillWidth: true
+            }
+            
+            Label {
+                text: resultDialog.text
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+            
+            Button {
+                text: "OK"
+                Layout.alignment: Qt.AlignRight
+                onClicked: resultDialog.close()
+            }
+        }
     }
 }
