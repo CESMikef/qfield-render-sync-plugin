@@ -105,8 +105,8 @@ Item {
         
         // Get API base URL from project or use default
         var apiBaseUrl = qfProject ? 
-                        (qfProject.customVariable("render_api_base_url") || "https://ces-qgis-qfield-v1.onrender.com") :
-                        "https://ces-qgis-qfield-v1.onrender.com"
+                        (qfProject.customVariable("render_api_base_url") || "https://qfield-photo-sync-api.onrender.com") :
+                        "https://qfield-photo-sync-api.onrender.com"
         
         var xhr = new XMLHttpRequest()
         xhr.open("GET", apiBaseUrl + "/api/config?token=" + userToken, true)
