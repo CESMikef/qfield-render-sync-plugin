@@ -63,8 +63,11 @@ Item {
         
         console.log("[Render Sync] Plugin loaded v" + pluginVersion)
         
-        // Show the floating button
-        floatingButton.visible = true
+        // Add button to QField toolbar
+        if (iface && iface.addItemToPluginsToolbar) {
+            iface.addItemToPluginsToolbar(syncButton)
+            console.log("[Render Sync] Button added to plugins toolbar")
+        }
     }
     
     /**
@@ -212,51 +215,26 @@ Item {
         )
     }
     
-    // Floating Action Button
-    Rectangle {
-        id: floatingButton
-        visible: false
-        width: 120
-        height: 50
-        radius: 25
-        color: plugin.configValid ? "#4CAF50" : "#999999"
-        opacity: plugin.configValid ? 1.0 : 0.6
+    // Toolbar Button
+    Button {
+        id: syncButton
+        text: qsTr("Sync Photos")
+        enabled: plugin.configValid && !plugin.syncInProgress
+        visible: true
         
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        anchors.rightMargin: 20
-        anchors.bottomMargin: 100
+        icon.source: Qt.resolvedUrl("icon.svg")
         
-        border.color: "#388E3C"
-        border.width: 2
+        display: AbstractButton.TextBesideIcon
         
-        MouseArea {
-            anchors.fill: parent
-            enabled: plugin.configValid
-            onClicked: {
-                console.log("[Render Sync] Button clicked")
-                plugin.openSyncDialog()
-            }
+        onClicked: {
+            console.log("[Render Sync] Button clicked")
+            plugin.openSyncDialog()
         }
         
-        RowLayout {
-            anchors.centerIn: parent
-            spacing: 8
-            
-            Image {
-                source: Qt.resolvedUrl("icon.svg")
-                width: 24
-                height: 24
-                fillMode: Image.PreserveAspectFit
-            }
-            
-            Text {
-                text: "Sync"
-                font.pixelSize: 16
-                font.bold: true
-                color: "white"
-            }
-        }
+        ToolTip.visible: hovered
+        ToolTip.text: plugin.configValid ? 
+                     qsTr("Sync photos to Render WebDAV and database") :
+                     qsTr("Configuration incomplete: ") + plugin.configErrors.join(", ")
     }
     
     // Sync Dialog Loader
