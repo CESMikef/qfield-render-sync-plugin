@@ -30,7 +30,7 @@ Item {
     property string pluginVersion: "1.0.0"
     
     // Project reference
-    property var qfProject: iface ? iface.project() : null
+    property var qfProject: iface ? iface.project : null
     
     // Configuration loaded from API
     property var config: ({})
