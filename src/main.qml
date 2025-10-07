@@ -9,6 +9,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
+import Qt.labs.settings 1.0
 import org.qfield 1.0
 import org.qgis 1.0
 import Theme 1.0
@@ -20,7 +21,6 @@ import "js/sync_engine.js" as SyncEngine
 
 Item {
     id: plugin
-    
     // Make plugin visible in QField
     visible: true
     width: parent ? parent.width : 0
@@ -70,27 +70,31 @@ Item {
         console.log("[Render Sync] Plugin loaded v" + pluginVersion)
     }
     
-    /**
-     * Load saved token from QField settings
-     */
-    function loadSavedToken() {
-        if (qfProject) {
-            userToken = qfProject.readEntry("render_sync", "user_token", "")
-            tokenConfigured = userToken && userToken !== ""
-            console.log("[Render Sync] Token " + (tokenConfigured ? "found" : "not found"))
-        }
+    // Persistent settings storage
+    Settings {
+        id: pluginSettings
+        category: "RenderSync"
+        property string savedToken: ""
     }
     
     /**
-     * Save token to QField settings
+     * Load saved token from settings
+     */
+    function loadSavedToken() {
+        userToken = pluginSettings.savedToken || ""
+        tokenConfigured = userToken && userToken !== ""
+        console.log("[Render Sync] Token " + (tokenConfigured ? "found: " + userToken.substring(0, 8) + "..." : "not found"))
+    }
+    
+    /**
+     * Save token to settings
      */
     function saveToken(token) {
-        if (qfProject) {
-            qfProject.writeEntry("render_sync", "user_token", token)
-            userToken = token
-            tokenConfigured = true
-            console.log("[Render Sync] Token saved")
-        }
+        console.log("[Render Sync] Saving token: " + token.substring(0, 8) + "...")
+        pluginSettings.savedToken = token
+        userToken = token
+        tokenConfigured = true
+        console.log("[Render Sync] Token saved successfully")
     }
     
     /**
@@ -119,9 +123,14 @@ Item {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 loadingConfig = false
                 
+                console.log("[Render Sync] API Response Status: " + xhr.status)
+                console.log("[Render Sync] API Response: " + xhr.responseText)
+                
                 if (xhr.status === 200) {
                     try {
                         var response = JSON.parse(xhr.responseText)
+                        console.log("[Render Sync] Parsed response:", JSON.stringify(response))
+                        
                         config = {
                             webdavUrl: response.webdav_url || response.DB_HOST || "",
                             webdavUsername: response.webdav_username || response.DB_USER || "",
@@ -133,29 +142,34 @@ Item {
                             dbPoolSize: response.DB_POOL_SIZE || 10
                         }
                         
+                        console.log("[Render Sync] Config set: webdavUrl=" + config.webdavUrl + ", dbTable=" + config.dbTable)
+                        
                         validateConfiguration()
                         
                         if (configValid) {
-                            console.log("[Render Sync] Configuration loaded successfully from API")
-                            displayToast("Configuration loaded successfully", "success")
+                            console.log("[Render Sync] ✓ Configuration loaded successfully from API")
+                            displayToast("✓ Configuration loaded", "success")
                         } else {
-                            console.log("[Render Sync] Configuration incomplete: " + configErrors.join(", "))
-                            displayToast("Configuration incomplete", "warning")
+                            console.log("[Render Sync] ✗ Configuration incomplete: " + configErrors.join(", "))
+                            displayToast("Configuration incomplete: " + configErrors.join(", "), "warning")
                         }
                     } catch (e) {
-                        console.log("[Render Sync] Error parsing API response: " + e)
-                        displayToast("Error loading configuration", "error")
+                        console.log("[Render Sync] ✗ Error parsing API response: " + e)
+                        displayToast("Error parsing API response", "error")
                         configValid = false
                     }
                 } else if (xhr.status === 401 || xhr.status === 403) {
-                    console.log("[Render Sync] Invalid token")
-                    displayToast("Invalid token. Please reconfigure.", "error")
+                    console.log("[Render Sync] ✗ Invalid token (status " + xhr.status + ")")
+                    displayToast("Invalid token. Please check and try again.", "error")
                     configValid = false
-                    userToken = ""
-                    tokenConfigured = false
+                    // Don't clear token automatically - let user try again
+                } else if (xhr.status === 0) {
+                    console.log("[Render Sync] ✗ Network error or CORS issue")
+                    displayToast("Cannot connect to API. Check network or API endpoint.", "error")
+                    configValid = false
                 } else {
-                    console.log("[Render Sync] API error: " + xhr.status)
-                    displayToast("Error connecting to API", "error")
+                    console.log("[Render Sync] ✗ API error: " + xhr.status + " - " + xhr.responseText)
+                    displayToast("API error: " + xhr.status, "error")
                     configValid = false
                 }
             }
