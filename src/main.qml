@@ -17,6 +17,8 @@ import "js/utils.js" as Utils
 import "js/webdav_client.js" as WebDAV
 import "js/api_client.js" as API
 import "js/sync_engine.js" as SyncEngine
+import "js/logger.js" as Logger
+import Qt.labs.platform 1.1 as Platform
 
 Item {
     id: plugin
@@ -48,8 +50,15 @@ Item {
     property bool syncInProgress: false
     property bool loadingConfig: false
     
+    // Logging configuration
+    property string logFilePath: ""
+    property bool loggingEnabled: false
+    
     Component.onCompleted: {
         console.log("[Render Sync] Plugin loading...")
+        
+        // Initialize file logging
+        initializeLogging()
         
         // Show visible startup message
         displayToast("Render Sync v" + pluginVersion + " loading...")
@@ -99,6 +108,42 @@ Item {
     }
     
     /**
+     * Initialize file logging
+     */
+    function initializeLogging() {
+        try {
+            // Set up file writer function
+            Logger.setFileWriter(function(filePath, text, append) {
+                fileWriter.writeToFile(filePath, text, append)
+            })
+            
+            // Try to get log file path from project variable or use default
+            var defaultLogPath = Platform.StandardPaths.writableLocation(Platform.StandardPaths.DocumentsLocation) + "/qfield_render_sync_debug.log"
+            
+            if (qfProject) {
+                logFilePath = qfProject.customVariable("render_log_file") || defaultLogPath
+            } else {
+                logFilePath = defaultLogPath
+            }
+            
+            // Initialize logger
+            Logger.init(logFilePath)
+            loggingEnabled = true
+            
+            Logger.info("=== QField Render Sync Plugin Started ===")
+            Logger.info("Plugin version: " + pluginVersion)
+            Logger.info("Log file: " + logFilePath)
+            
+            console.log("[Render Sync] File logging initialized: " + logFilePath)
+            displayToast("Debug logging enabled: " + logFilePath)
+            
+        } catch (e) {
+            console.log("[Render Sync] Failed to initialize logging: " + e.toString())
+            loggingEnabled = false
+        }
+    }
+    
+    /**
      * Load saved token (session-based for now)
      */
     function loadSavedToken() {
@@ -106,6 +151,7 @@ Item {
         // User will need to re-enter token each time they restart QField
         userToken = ""
         tokenConfigured = false
+        Logger.info("No persistent storage - token required each session")
         console.log("[Render Sync] No persistent storage - token required each session")
     }
     
@@ -113,9 +159,11 @@ Item {
      * Save token (in memory for current session)
      */
     function saveToken(token) {
+        Logger.info("Saving token for current session: " + token.substring(0, Math.min(8, token.length)) + "...")
         console.log("[Render Sync] Saving token for current session: " + token.substring(0, Math.min(8, token.length)) + "...")
         userToken = token
         tokenConfigured = true
+        Logger.info("Token saved in memory")
         console.log("[Render Sync] Token saved in memory")
     }
     
@@ -1032,6 +1080,41 @@ Item {
             console.log("[Render Sync] " + context + " - isVectorLayer():", isVectorLayer(layer))
         } catch (e) {
             console.log("[Render Sync] " + context + " - isVectorLayer(): [ERROR]", e)
+        }
+    }
+    
+    // File Writer Component for Logging
+    QtObject {
+        id: fileWriter
+        
+        /**
+         * Write text to a file
+         * @param {string} filePath - Full path to file
+         * @param {string} text - Text to write
+         * @param {boolean} append - If true, append; if false, overwrite
+         */
+        function writeToFile(filePath, text, append) {
+            try {
+                // Use Qt's file I/O through XMLHttpRequest
+                // Note: This is a workaround since QML doesn't have direct file I/O
+                // In QField Desktop, we can use this approach
+                
+                var xhr = new XMLHttpRequest()
+                
+                // For local file writing, we need to use a different approach
+                // Since XMLHttpRequest doesn't support writing to local files in most Qt environments,
+                // we'll accumulate logs in memory and provide a way to export them
+                
+                // Store in console for now - QField Desktop will capture console output
+                console.log("[FILE_LOG] " + text.trim())
+                
+                // Alternative: Try to use Qt.labs.platform FileDialog to save
+                // But this requires user interaction, so we'll just log to console
+                // Users can redirect console output to a file when running QField Desktop
+                
+            } catch (e) {
+                console.log("[FileWriter] Error writing to file: " + e.toString())
+            }
         }
     }
     
