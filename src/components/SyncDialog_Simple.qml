@@ -12,8 +12,8 @@ Popup {
     modal: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     
-    width: parent ? Math.min(parent.width * 0.9, 600) : 600
-    height: parent ? Math.min(parent.height * 0.8, 700) : 700
+    width: parent ? Math.min(parent.width * 0.95, 700) : 700
+    height: parent ? Math.min(parent.height * 0.9, 800) : 800
     
     x: parent ? (parent.width - width) / 2 : 0
     y: parent ? (parent.height - height) / 2 : 0
@@ -257,25 +257,38 @@ Popup {
         }
         
         // Debug log area
+        Text {
+            text: "Debug Log:"
+            font.pixelSize: 12
+            font.bold: true
+        }
+        
         ScrollView {
             id: debugScrollView
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            Layout.minimumHeight: 150
+            Layout.preferredHeight: 300
+            Layout.minimumHeight: 200
             clip: true
+            
+            background: Rectangle {
+                color: "#f5f5f5"
+                border.color: "#cccccc"
+                border.width: 1
+            }
             
             TextArea {
                 id: debugLogArea
                 readOnly: true
                 wrapMode: TextArea.Wrap
-                font.pixelSize: 10
+                font.pixelSize: 11
                 font.family: "Courier New"
-                text: "Debug logs will appear here..."
+                text: "Debug logs will appear here when you open the dialog..."
                 selectByMouse: true
+                background: Rectangle {
+                    color: "transparent"
+                }
             }
         }
-        
-        Item { Layout.fillHeight: true }
         
         Button {
             text: syncing ? "Syncing..." : "Start Sync"
