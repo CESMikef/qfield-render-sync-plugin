@@ -579,11 +579,55 @@ Item {
                 // Log all available properties/methods
                 displayToast("Checking qgisProject properties...")
                 var props = []
+                var layerRelatedProps = []
+                
                 for (var prop in qgisProject) {
-                    props.push(prop + ":" + typeof qgisProject[prop])
+                    var propType = typeof qgisProject[prop]
+                    props.push(prop + ":" + propType)
+                    
+                    // Look for layer-related properties
+                    var propLower = prop.toLowerCase()
+                    if (propLower.indexOf("layer") >= 0 || propLower.indexOf("map") >= 0) {
+                        layerRelatedProps.push(prop + ":" + propType)
+                    }
                 }
-                console.log("[Render Sync] qgisProject properties:", props.join(", "))
+                
+                console.log("[Render Sync] qgisProject ALL properties:", props.join(", "))
+                console.log("[Render Sync] Layer-related properties:", layerRelatedProps.join(", "))
+                
                 displayToast("qgisProject has " + props.length + " properties")
+                
+                // Show layer-related properties in toast messages
+                if (layerRelatedProps.length > 0) {
+                    displayToast("Layer-related properties found: " + layerRelatedProps.length)
+                    for (var i = 0; i < Math.min(layerRelatedProps.length, 10); i++) {
+                        displayToast("  " + layerRelatedProps[i])
+                    }
+                } else {
+                    displayToast("No layer-related properties found!")
+                }
+                
+                // Try some common QGIS methods
+                displayToast("Trying common QGIS methods...")
+                
+                // Try mapLayersByName
+                if (typeof qgisProject.mapLayersByName === 'function') {
+                    displayToast("✓ Has mapLayersByName()")
+                }
+                
+                // Try layerTreeRoot
+                if (qgisProject.layerTreeRoot) {
+                    displayToast("✓ Has layerTreeRoot")
+                    try {
+                        var root = qgisProject.layerTreeRoot()
+                        if (root && typeof root.children === 'function') {
+                            var children = root.children()
+                            displayToast("layerTreeRoot has " + children.length + " children")
+                        }
+                    } catch (e) {
+                        displayToast("layerTreeRoot error: " + e.toString())
+                    }
+                }
                 
                 return []
             }
