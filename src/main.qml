@@ -18,7 +18,6 @@ import "js/webdav_client.js" as WebDAV
 import "js/api_client.js" as API
 import "js/sync_engine.js" as SyncEngine
 import "js/logger.js" as Logger
-import Qt.labs.platform 1.1 as Platform
 
 Item {
     id: plugin
@@ -117,13 +116,16 @@ Item {
                 fileWriter.writeToFile(filePath, text, append)
             })
             
-            // Try to get log file path from project variable or use default
-            var defaultLogPath = Platform.StandardPaths.writableLocation(Platform.StandardPaths.DocumentsLocation) + "/qfield_render_sync_debug.log"
+            // Use a simple default log path (console output only in QField)
+            // For QField Desktop, users can redirect console output to a file
+            logFilePath = "qfield_render_sync_debug.log"
             
+            // Check if custom log path is set in project
             if (qfProject) {
-                logFilePath = qfProject.customVariable("render_log_file") || defaultLogPath
-            } else {
-                logFilePath = defaultLogPath
+                var customPath = qfProject.customVariable("render_log_file")
+                if (customPath) {
+                    logFilePath = customPath
+                }
             }
             
             // Initialize logger
@@ -132,10 +134,9 @@ Item {
             
             Logger.info("=== QField Render Sync Plugin Started ===")
             Logger.info("Plugin version: " + pluginVersion)
-            Logger.info("Log file: " + logFilePath)
+            Logger.info("Log file: Console output with [FILE_LOG] tags")
             
-            console.log("[Render Sync] File logging initialized: " + logFilePath)
-            displayToast("Debug logging enabled: " + logFilePath)
+            console.log("[Render Sync] File logging initialized (console mode)")
             
         } catch (e) {
             console.log("[Render Sync] Failed to initialize logging: " + e.toString())
