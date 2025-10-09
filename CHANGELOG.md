@@ -1,5 +1,48 @@
 # Changelog
 
+## v2.3.0 (2025-10-09) - Enhanced Layer & Photo Detection
+
+### 🔧 Critical Fixes
+
+**Multiple Layer Detection Strategies**
+- Implemented 5 different approaches to access project layers in QField
+- Added fallback mechanisms for different QField API versions
+- Enhanced diagnostic logging to identify which approach works
+
+**Layer Access Methods**:
+1. `iface.project` (QGIS Desktop style)
+2. `iface.mapCanvas().project()` (QField style)
+3. `iface.mapCanvas().layers()` (Direct canvas access)
+4. `QgsProject.instance()` (Global project instance)
+5. `iface.activeLayer()` (Fallback to active layer only)
+
+**Improved Photo Detection**:
+- Enhanced feature iteration to handle both array and iterator patterns
+- Added comprehensive logging for photo field values
+- Better handling of empty or null photo paths
+- Clearer distinction between local paths and already-synced URLs
+
+### 🐛 Bug Fixes
+- Fixed "No layers found" issue by trying multiple QField API approaches
+- Improved error messages when layer access fails
+- Added extensive diagnostic logging at every step
+- Better handling of edge cases in feature collection access
+
+### 📊 Diagnostic Improvements
+- Console logs now show all attempted approaches
+- Clear success/failure indicators for each method
+- Logs show exact feature count and photo detection results
+- Toast notifications provide immediate user feedback
+
+### 🎯 What to Watch For
+This version adds extensive logging to help diagnose the exact QField API:
+- Check QField console logs when opening sync dialog
+- Look for "GET VECTOR LAYERS" section showing which approach worked
+- "UPDATE PENDING COUNT" section shows photo detection details
+- Report back which "Approach" successfully found layers
+
+---
+
 ## v2.0.0 (2025-10-07) - Token-Based Configuration
 
 ### 🎉 Major Changes

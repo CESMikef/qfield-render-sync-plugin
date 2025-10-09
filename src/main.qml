@@ -27,7 +27,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "1.0.0"
+    property string pluginVersion: "2.3.0"
     
     // Project reference
     property var qfProject: iface ? iface.project : null
@@ -473,67 +473,148 @@ Item {
     }
     
     /**
-     * Get all vector layers
+     * Get all vector layers - tries multiple approaches
      */
     function getVectorLayers() {
-        console.log("[Render Sync] getVectorLayers called")
-        console.log("[Render Sync] iface:", iface)
-        console.log("[Render Sync] iface.project:", iface ? iface.project : "iface is null")
-        console.log("[Render Sync] qfProject:", qfProject)
+        console.log("[Render Sync] ========== GET VECTOR LAYERS ==========")
+        console.log("[Render Sync] iface exists:", !!iface)
         
-        // Try alternative ways to get project
-        if (!qfProject && iface) {
-            console.log("[Render Sync] Trying iface.mapCanvas()...")
-            var canvas = iface.mapCanvas()
-            if (canvas) {
-                console.log("[Render Sync] Canvas found, trying canvas.project()...")
-                var canvasProject = canvas.project()
-                if (canvasProject) {
-                    console.log("[Render Sync] Got project from canvas!")
-                    qfProject = canvasProject
-                }
+        // Diagnostic: Log all iface properties/methods
+        if (iface) {
+            console.log("[Render Sync] Inspecting iface object...")
+            try {
+                console.log("[Render Sync] iface.project:", iface.project)
+                console.log("[Render Sync] iface.activeLayer:", typeof iface.activeLayer)
+                console.log("[Render Sync] iface.mapCanvas:", typeof iface.mapCanvas)
+                console.log("[Render Sync] iface.layerTree:", typeof iface.layerTree)
+            } catch (e) {
+                console.log("[Render Sync] Error inspecting iface:", e)
             }
-        }
-        
-        if (!qfProject) {
-            console.log("[Render Sync] ERROR: No project loaded")
-            console.log("[Render Sync] iface exists:", !!iface)
-            console.log("[Render Sync] iface.project exists:", iface && !!iface.project)
-            displayToast("No project loaded - check console")
-            return []
         }
         
         var layers = []
-        var mapLayers = qfProject.mapLayers()
-        console.log("[Render Sync] Project has", Object.keys(mapLayers).length, "map layers")
-        console.log("[Render Sync] mapLayers object:", JSON.stringify(Object.keys(mapLayers)))
+        var project = null
         
-        for (var layerId in mapLayers) {
-            var layer = mapLayers[layerId]
-            if (!layer) {
-                console.log("[Render Sync] Layer is null for ID:", layerId)
-                continue
-            }
-            
-            console.log("[Render Sync] Layer:", layer.name())
-            console.log("[Render Sync] Layer type:", layer.type())
-            console.log("[Render Sync] Layer type name:", layer.type() === 0 ? "Vector" : layer.type() === 1 ? "Raster" : "Other")
-            
-            // QgsMapLayer.VectorLayer = 0
-            if (layer.type() === 0) {
-                console.log("[Render Sync] ✓ Adding vector layer:", layer.name())
-                layers.push(layer)
-            } else {
-                console.log("[Render Sync] ✗ Skipping non-vector layer:", layer.name())
-            }
-        }
-        
-        console.log("[Render Sync] Returning", layers.length, "vector layers")
-        if (layers.length === 0) {
-            displayToast("No vector layers found in project")
+        // APPROACH 1: Try iface.project (QGIS Desktop style)
+        console.log("[Render Sync] Approach 1: iface.project")
+        if (iface && iface.project) {
+            console.log("[Render Sync] ✓ iface.project exists")
+            project = iface.project
         } else {
-            displayToast("Found " + layers.length + " vector layer(s)")
+            console.log("[Render Sync] ✗ iface.project is null or undefined")
         }
+        
+        // APPROACH 2: Try iface.mapCanvas().project() (QField style)
+        if (!project && iface && typeof iface.mapCanvas === 'function') {
+            console.log("[Render Sync] Approach 2: iface.mapCanvas().project()")
+            try {
+                var canvas = iface.mapCanvas()
+                console.log("[Render Sync] Canvas:", !!canvas)
+                if (canvas && typeof canvas.project === 'function') {
+                    project = canvas.project()
+                    console.log("[Render Sync] ✓ Got project from canvas:", !!project)
+                } else {
+                    console.log("[Render Sync] ✗ canvas.project() not available")
+                }
+            } catch (e) {
+                console.log("[Render Sync] ✗ Error getting project from canvas:", e)
+            }
+        }
+        
+        // APPROACH 3: Try iface.mapCanvas().layers() directly
+        if (layers.length === 0 && iface && typeof iface.mapCanvas === 'function') {
+            console.log("[Render Sync] Approach 3: iface.mapCanvas().layers()")
+            try {
+                var canvas = iface.mapCanvas()
+                if (canvas && typeof canvas.layers === 'function') {
+                    var canvasLayers = canvas.layers()
+                    console.log("[Render Sync] Canvas has", canvasLayers.length, "layers")
+                    for (var i = 0; i < canvasLayers.length; i++) {
+                        var layer = canvasLayers[i]
+                        if (layer && layer.type() === 0) { // Vector layer
+                            console.log("[Render Sync] ✓ Found vector layer from canvas:", layer.name())
+                            layers.push(layer)
+                        }
+                    }
+                } else {
+                    console.log("[Render Sync] ✗ canvas.layers() not available")
+                }
+            } catch (e) {
+                console.log("[Render Sync] ✗ Error getting layers from canvas:", e)
+            }
+        }
+        
+        // APPROACH 4: Try QgsProject.instance() (if available in QField)
+        if (!project && layers.length === 0 && typeof QgsProject !== 'undefined') {
+            console.log("[Render Sync] Approach 4: QgsProject.instance()")
+            try {
+                project = QgsProject.instance()
+                console.log("[Render Sync] ✓ Got QgsProject.instance():", !!project)
+            } catch (e) {
+                console.log("[Render Sync] ✗ QgsProject.instance() failed:", e)
+            }
+        }
+        
+        // If we have a project, get layers from it
+        if (project && layers.length === 0) {
+            console.log("[Render Sync] Getting layers from project...")
+            try {
+                var mapLayers = project.mapLayers()
+                console.log("[Render Sync] Project has", Object.keys(mapLayers).length, "map layers")
+                
+                for (var layerId in mapLayers) {
+                    var layer = mapLayers[layerId]
+                    if (!layer) {
+                        continue
+                    }
+                    
+                    console.log("[Render Sync] Layer:", layer.name(), "Type:", layer.type())
+                    
+                    // QgsMapLayer.VectorLayer = 0
+                    if (layer.type() === 0) {
+                        console.log("[Render Sync] ✓ Adding vector layer:", layer.name())
+                        layers.push(layer)
+                    }
+                }
+                
+                // Store project reference if successful
+                qfProject = project
+            } catch (e) {
+                console.log("[Render Sync] ✗ Error getting layers from project:", e)
+            }
+        }
+        
+        // APPROACH 5: Try getting active layer as fallback
+        if (layers.length === 0 && iface && typeof iface.activeLayer === 'function') {
+            console.log("[Render Sync] Approach 5: iface.activeLayer() as fallback")
+            try {
+                var activeLayer = iface.activeLayer()
+                if (activeLayer && activeLayer.type() === 0) {
+                    console.log("[Render Sync] ✓ Found active vector layer:", activeLayer.name())
+                    layers.push(activeLayer)
+                    displayToast("Only showing active layer - project access unavailable", "warning")
+                } else {
+                    console.log("[Render Sync] ✗ No active vector layer")
+                }
+            } catch (e) {
+                console.log("[Render Sync] ✗ Error getting active layer:", e)
+            }
+        }
+        
+        console.log("[Render Sync] ========== RESULT ==========")
+        console.log("[Render Sync] Total vector layers found:", layers.length)
+        
+        if (layers.length === 0) {
+            console.log("[Render Sync] ✗ NO LAYERS FOUND")
+            displayToast("ERROR: Cannot access project layers. Check QField console logs.", "error")
+        } else {
+            console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "layer(s)")
+            for (var j = 0; j < layers.length; j++) {
+                console.log("[Render Sync]   - " + layers[j].name())
+            }
+            displayToast("Found " + layers.length + " vector layer(s)", "success")
+        }
+        
         return layers
     }
 }

@@ -80,33 +80,97 @@ Popup {
     }
     
     function updatePendingCount() {
-        console.log("[SyncDialog] Updating pending count...")
+        console.log("[SyncDialog] ========== UPDATE PENDING COUNT ==========")
+        console.log("[SyncDialog] selectedLayer:", !!selectedLayer)
+        
         if (!selectedLayer) {
+            console.log("[SyncDialog] No layer selected")
             pendingPhotos = []
             totalPhotos = 0
             return
         }
         
-        pendingPhotos = []
-        var features = selectedLayer.getFeatures()
+        console.log("[SyncDialog] Layer name:", selectedLayer.name())
+        console.log("[SyncDialog] Photo field:", config.photoField || "photo")
         
-        for (var i = 0; i < features.length; i++) {
-            var feature = features[i]
-            var photoPath = feature.attribute(config.photoField)
+        pendingPhotos = []
+        
+        try {
+            var features = selectedLayer.getFeatures()
+            console.log("[SyncDialog] Got features, type:", typeof features)
+            console.log("[SyncDialog] Features length/count:", features.length || "no length property")
             
-            if (photoPath && typeof photoPath === 'string') {
-                if (!/^https?:\/\//i.test(photoPath) && (/[\/\\]/.test(photoPath) || /^[a-zA-Z]:/.test(photoPath))) {
-                    pendingPhotos.push({
-                        feature: feature,
-                        globalId: feature.attribute('global_id') || feature.attribute('globalid') || feature.id().toString(),
-                        localPath: photoPath
-                    })
+            // Handle both array-like and iterator-like feature collections
+            var featureCount = 0
+            var photoFieldName = config.photoField || "photo"
+            
+            // Try array-style access first
+            if (features.length !== undefined) {
+                console.log("[SyncDialog] Processing", features.length, "features (array-style)")
+                for (var i = 0; i < features.length; i++) {
+                    featureCount++
+                    var feature = features[i]
+                    if (!feature) {
+                        console.log("[SyncDialog] Feature", i, "is null, skipping")
+                        continue
+                    }
+                    
+                    var photoPath = feature.attribute(photoFieldName)
+                    console.log("[SyncDialog] Feature", i, "photo path:", photoPath ? photoPath.substring(0, Math.min(50, photoPath.length)) + "..." : "null")
+                    
+                    if (photoPath && typeof photoPath === 'string' && photoPath.trim() !== '') {
+                        // Check if it's a local path (not a URL)
+                        if (!/^https?:\/\//i.test(photoPath) && (/[\/\\]/.test(photoPath) || /^[a-zA-Z]:/.test(photoPath))) {
+                            console.log("[SyncDialog] ✓ Found pending photo:", photoPath)
+                            pendingPhotos.push({
+                                feature: feature,
+                                globalId: feature.attribute('global_id') || feature.attribute('globalid') || feature.id().toString(),
+                                localPath: photoPath
+                            })
+                        } else {
+                            console.log("[SyncDialog] ✗ Already synced (URL):", photoPath.substring(0, 50))
+                        }
+                    }
                 }
+            } else {
+                console.log("[SyncDialog] Features object doesn't have length property")
+                console.log("[SyncDialog] Trying iterator-style access...")
+                
+                // Try iterator pattern
+                var feature = features.next()
+                while (feature) {
+                    featureCount++
+                    var photoPath = feature.attribute(photoFieldName)
+                    
+                    if (photoPath && typeof photoPath === 'string' && photoPath.trim() !== '') {
+                        if (!/^https?:\/\//i.test(photoPath) && (/[\/\\]/.test(photoPath) || /^[a-zA-Z]:/.test(photoPath))) {
+                            console.log("[SyncDialog] ✓ Found pending photo:", photoPath)
+                            pendingPhotos.push({
+                                feature: feature,
+                                globalId: feature.attribute('global_id') || feature.attribute('globalid') || feature.id().toString(),
+                                localPath: photoPath
+                            })
+                        }
+                    }
+                    
+                    feature = features.next()
+                }
+            }
+            
+            console.log("[SyncDialog] Processed", featureCount, "features")
+            console.log("[SyncDialog] Found", pendingPhotos.length, "pending photos")
+            
+        } catch (e) {
+            console.log("[SyncDialog] ✗ ERROR getting features:", e)
+            console.log("[SyncDialog] Stack:", e.stack)
+            if (plugin && plugin.displayToast) {
+                plugin.displayToast("Error reading layer features: " + e.toString(), "error")
             }
         }
         
         totalPhotos = pendingPhotos.length
-        console.log("[SyncDialog] Found " + totalPhotos + " pending photos")
+        console.log("[SyncDialog] ========== PENDING COUNT COMPLETE ==========")
+        console.log("[SyncDialog] Total pending photos:", totalPhotos)
     }
     
     function startSync() {
