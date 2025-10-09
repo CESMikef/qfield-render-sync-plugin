@@ -497,54 +497,69 @@ Item {
     }
     
     /**
-     * Get all vector layers - QFIELD QGIS PROJECT APPROACH
+     * Get all vector layers - QFIELD QGIS PROJECT APPROACH WITH TOAST DIAGNOSTICS
      */
     function getVectorLayers() {
         console.log("[Render Sync] ========== GET VECTOR LAYERS (QGIS PROJECT) ==========")
         
         var layers = []
-        
-        displayToast("🔍 Using qgisProject to get layers...", "info")
+        var diagnosticMessages = []
         
         try {
             // Check if qgisProject is available (QField's main project object)
             if (typeof qgisProject === 'undefined' || !qgisProject) {
                 console.log("[Render Sync] qgisProject is undefined or null")
-                displayToast("❌ qgisProject not available", "error")
+                displayToast("❌ qgisProject is " + (typeof qgisProject === 'undefined' ? "undefined" : "null"))
+                diagnosticMessages.push("qgisProject: " + (typeof qgisProject === 'undefined' ? "undefined" : "null"))
                 return []
             }
             
             console.log("[Render Sync] ✓ qgisProject exists")
+            displayToast("✓ qgisProject exists")
+            diagnosticMessages.push("qgisProject: exists")
             
             // Get map layers from qgisProject
             var mapLayers = qgisProject.mapLayers()
             console.log("[Render Sync] qgisProject.mapLayers() returned:", typeof mapLayers, mapLayers)
             
             if (!mapLayers) {
-                displayToast("❌ No layers from qgisProject", "error")
-                console.log("[Render Sync] qgisProject.mapLayers() returned null/undefined")
+                displayToast("❌ mapLayers() returned: " + (mapLayers === null ? "null" : "undefined"))
+                diagnosticMessages.push("mapLayers: " + (mapLayers === null ? "null" : "undefined"))
                 return []
             }
             
-            console.log("[Render Sync] Found", mapLayers.length, "total layers in project")
-            displayToast("Found " + mapLayers.length + " total layers", "info")
+            var mapLayersType = typeof mapLayers
+            displayToast("mapLayers type: " + mapLayersType)
+            diagnosticMessages.push("mapLayers type: " + mapLayersType)
+            
+            // Check if it has length property
+            var hasLength = mapLayers.length !== undefined
+            displayToast("Has length: " + hasLength + (hasLength ? " (" + mapLayers.length + ")" : ""))
+            
+            // Check if it has values method (QMap)
+            var hasValues = typeof mapLayers.values === 'function'
+            displayToast("Has values(): " + hasValues)
             
             // Convert to array if it's not already
             var layerArray = []
-            if (mapLayers.length !== undefined) {
+            if (hasLength) {
                 // It's already an array-like object
+                displayToast("✓ Using array-like access")
                 layerArray = mapLayers
-            } else if (mapLayers.values) {
+            } else if (hasValues) {
                 // It's a QMap, convert to array
+                displayToast("✓ Using QMap.values()")
                 var values = mapLayers.values()
                 for (var i = 0; i < values.length; i++) {
                     layerArray.push(values[i])
                 }
             } else {
-                console.log("[Render Sync] Cannot determine layer collection type:", mapLayers)
+                displayToast("❌ Cannot determine collection type")
+                diagnosticMessages.push("Cannot determine collection type")
                 return []
             }
             
+            displayToast("Processing " + layerArray.length + " layers...")
             console.log("[Render Sync] Processing", layerArray.length, "layers")
             
             // Filter for vector layers
@@ -570,6 +585,8 @@ Item {
                         console.log("[Render Sync] Error getting layer type:", e)
                     }
                     
+                    displayToast("Layer " + (i+1) + ": " + layerName + " (type:" + layerType + ")")
+                    
                     try {
                         var toStringResult = layer.toString()
                         console.log("[Render Sync] Layer toString():", toStringResult)
@@ -581,10 +598,14 @@ Item {
                     var isVector = false
                     if (layerType === 0) {
                         isVector = true
+                        displayToast("✓ " + layerName + " is VECTOR (type=0)")
                         console.log("[Render Sync] ✓ Vector layer by type:", layerName)
                     } else if (toStringResult && toStringResult.indexOf("QgsVectorLayer") >= 0) {
                         isVector = true
+                        displayToast("✓ " + layerName + " is VECTOR (toString)")
                         console.log("[Render Sync] ✓ Vector layer by toString:", layerName)
+                    } else {
+                        displayToast("✗ " + layerName + " is NOT vector (type:" + layerType + ")")
                     }
                     
                     if (isVector) {
@@ -594,6 +615,7 @@ Item {
                         console.log("[Render Sync] ✗ Skipping non-vector layer:", layerName, "type:", layerType)
                     }
                 } else {
+                    displayToast("Layer " + (i+1) + " is null/undefined")
                     console.log("[Render Sync] Layer", i, "is null/undefined")
                 }
             }
@@ -607,15 +629,15 @@ Item {
                         layerNames.push("Error getting name")
                     }
                 }
-                displayToast("✅ SUCCESS! Found " + layers.length + " vector layer(s)", "success")
+                displayToast("✅ SUCCESS! Found " + layers.length + " vector layer(s): " + layerNames.join(", "))
                 console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
             } else {
-                displayToast("⚠️ No vector layers found", "warning")
+                displayToast("⚠️ No vector layers found in " + layerArray.length + " total layers")
                 console.log("[Render Sync] No vector layers found in project")
             }
             
         } catch (e) {
-            displayToast("❌ ERROR: " + e.toString(), "error")
+            displayToast("❌ EXCEPTION: " + e.toString())
             console.log("[Render Sync] ERROR:", e)
             console.log("[Render Sync] Stack:", e.stack)
         }
