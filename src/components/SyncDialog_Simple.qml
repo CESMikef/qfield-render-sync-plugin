@@ -65,9 +65,10 @@ Popup {
             
             for (var i = 0; i < layers.length; i++) {
                 var layer = layers[i]
-                console.log("[SyncDialog] Adding layer:", layer.name())
+                var layerName = layer.name  // name is a property in QField QML
+                console.log("[SyncDialog] Adding layer:", layerName)
                 layerComboBox.model.append({
-                    text: layer.name(),
+                    text: layerName,
                     layer: layer
                 })
             }
@@ -90,7 +91,7 @@ Popup {
             return
         }
         
-        console.log("[SyncDialog] Layer name:", selectedLayer.name())
+        console.log("[SyncDialog] Layer name:", selectedLayer.name)
         console.log("[SyncDialog] Photo field:", config.photoField || "photo")
         
         pendingPhotos = []
