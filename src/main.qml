@@ -27,7 +27,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.3.0"
+    property string pluginVersion: "2.3.1"
     
     // Project reference
     property var qfProject: iface ? iface.project : null
@@ -479,17 +479,29 @@ Item {
         console.log("[Render Sync] ========== GET VECTOR LAYERS ==========")
         console.log("[Render Sync] iface exists:", !!iface)
         
+        // Show diagnostic info in toast messages
+        displayToast("🔍 Diagnostic: Checking layer access methods...", "info")
+        
         // Diagnostic: Log all iface properties/methods
         if (iface) {
             console.log("[Render Sync] Inspecting iface object...")
+            displayToast("iface exists: YES", "info")
             try {
                 console.log("[Render Sync] iface.project:", iface.project)
                 console.log("[Render Sync] iface.activeLayer:", typeof iface.activeLayer)
                 console.log("[Render Sync] iface.mapCanvas:", typeof iface.mapCanvas)
                 console.log("[Render Sync] iface.layerTree:", typeof iface.layerTree)
+                
+                var diagnosticMsg = "iface.project: " + (iface.project ? "EXISTS" : "NULL") + "\n"
+                diagnosticMsg += "iface.activeLayer: " + (typeof iface.activeLayer) + "\n"
+                diagnosticMsg += "iface.mapCanvas: " + (typeof iface.mapCanvas)
+                displayToast(diagnosticMsg, "info")
             } catch (e) {
                 console.log("[Render Sync] Error inspecting iface:", e)
+                displayToast("Error inspecting iface: " + e.toString(), "error")
             }
+        } else {
+            displayToast("iface exists: NO - CRITICAL ERROR", "error")
         }
         
         var layers = []
@@ -497,38 +509,51 @@ Item {
         
         // APPROACH 1: Try iface.project (QGIS Desktop style)
         console.log("[Render Sync] Approach 1: iface.project")
+        displayToast("Trying Approach 1: iface.project", "info")
         if (iface && iface.project) {
             console.log("[Render Sync] ✓ iface.project exists")
             project = iface.project
+            displayToast("✓ Approach 1 SUCCESS!", "success")
         } else {
             console.log("[Render Sync] ✗ iface.project is null or undefined")
+            displayToast("✗ Approach 1 failed", "warning")
         }
         
         // APPROACH 2: Try iface.mapCanvas().project() (QField style)
         if (!project && iface && typeof iface.mapCanvas === 'function') {
             console.log("[Render Sync] Approach 2: iface.mapCanvas().project()")
+            displayToast("Trying Approach 2: mapCanvas().project()", "info")
             try {
                 var canvas = iface.mapCanvas()
                 console.log("[Render Sync] Canvas:", !!canvas)
                 if (canvas && typeof canvas.project === 'function') {
                     project = canvas.project()
                     console.log("[Render Sync] ✓ Got project from canvas:", !!project)
+                    if (project) {
+                        displayToast("✓ Approach 2 SUCCESS!", "success")
+                    } else {
+                        displayToast("✗ Approach 2: canvas.project() returned null", "warning")
+                    }
                 } else {
                     console.log("[Render Sync] ✗ canvas.project() not available")
+                    displayToast("✗ Approach 2: canvas.project() not available", "warning")
                 }
             } catch (e) {
                 console.log("[Render Sync] ✗ Error getting project from canvas:", e)
+                displayToast("✗ Approach 2 error: " + e.toString(), "error")
             }
         }
         
         // APPROACH 3: Try iface.mapCanvas().layers() directly
         if (layers.length === 0 && iface && typeof iface.mapCanvas === 'function') {
             console.log("[Render Sync] Approach 3: iface.mapCanvas().layers()")
+            displayToast("Trying Approach 3: canvas.layers()", "info")
             try {
                 var canvas = iface.mapCanvas()
                 if (canvas && typeof canvas.layers === 'function') {
                     var canvasLayers = canvas.layers()
                     console.log("[Render Sync] Canvas has", canvasLayers.length, "layers")
+                    displayToast("Canvas has " + canvasLayers.length + " layers", "info")
                     for (var i = 0; i < canvasLayers.length; i++) {
                         var layer = canvasLayers[i]
                         if (layer && layer.type() === 0) { // Vector layer
@@ -536,22 +561,34 @@ Item {
                             layers.push(layer)
                         }
                     }
+                    if (layers.length > 0) {
+                        displayToast("✓ Approach 3 SUCCESS! Found " + layers.length + " layers", "success")
+                    }
                 } else {
                     console.log("[Render Sync] ✗ canvas.layers() not available")
+                    displayToast("✗ Approach 3: canvas.layers() not available", "warning")
                 }
             } catch (e) {
                 console.log("[Render Sync] ✗ Error getting layers from canvas:", e)
+                displayToast("✗ Approach 3 error: " + e.toString(), "error")
             }
         }
         
         // APPROACH 4: Try QgsProject.instance() (if available in QField)
         if (!project && layers.length === 0 && typeof QgsProject !== 'undefined') {
             console.log("[Render Sync] Approach 4: QgsProject.instance()")
+            displayToast("Trying Approach 4: QgsProject.instance()", "info")
             try {
                 project = QgsProject.instance()
                 console.log("[Render Sync] ✓ Got QgsProject.instance():", !!project)
+                if (project) {
+                    displayToast("✓ Approach 4 SUCCESS!", "success")
+                } else {
+                    displayToast("✗ Approach 4: returned null", "warning")
+                }
             } catch (e) {
                 console.log("[Render Sync] ✗ QgsProject.instance() failed:", e)
+                displayToast("✗ Approach 4 error: " + e.toString(), "error")
             }
         }
         
@@ -587,17 +624,21 @@ Item {
         // APPROACH 5: Try getting active layer as fallback
         if (layers.length === 0 && iface && typeof iface.activeLayer === 'function') {
             console.log("[Render Sync] Approach 5: iface.activeLayer() as fallback")
+            displayToast("Trying Approach 5: activeLayer()", "info")
             try {
                 var activeLayer = iface.activeLayer()
                 if (activeLayer && activeLayer.type() === 0) {
                     console.log("[Render Sync] ✓ Found active vector layer:", activeLayer.name())
                     layers.push(activeLayer)
-                    displayToast("Only showing active layer - project access unavailable", "warning")
+                    displayToast("✓ Approach 5 SUCCESS! Found active layer: " + activeLayer.name(), "success")
+                    displayToast("⚠️ Only showing active layer - project access unavailable", "warning")
                 } else {
                     console.log("[Render Sync] ✗ No active vector layer")
+                    displayToast("✗ Approach 5: No active vector layer", "warning")
                 }
             } catch (e) {
                 console.log("[Render Sync] ✗ Error getting active layer:", e)
+                displayToast("✗ Approach 5 error: " + e.toString(), "error")
             }
         }
         
@@ -606,13 +647,16 @@ Item {
         
         if (layers.length === 0) {
             console.log("[Render Sync] ✗ NO LAYERS FOUND")
-            displayToast("ERROR: Cannot access project layers. Check QField console logs.", "error")
+            displayToast("❌ ALL 5 APPROACHES FAILED", "error")
+            displayToast("No project layers accessible. Do you have a project open?", "error")
         } else {
             console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "layer(s)")
+            var layerNames = ""
             for (var j = 0; j < layers.length; j++) {
                 console.log("[Render Sync]   - " + layers[j].name())
+                layerNames += layers[j].name() + (j < layers.length - 1 ? ", " : "")
             }
-            displayToast("Found " + layers.length + " vector layer(s)", "success")
+            displayToast("✅ SUCCESS! Found " + layers.length + " layer(s): " + layerNames, "success")
         }
         
         return layers
