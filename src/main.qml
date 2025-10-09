@@ -27,7 +27,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.3.2"
+    property string pluginVersion: "2.4.0"
     
     // Project reference - try multiple ways
     property var qfProject: null
@@ -492,9 +492,70 @@ Item {
     }
     
     /**
-     * Get all vector layers - tries multiple approaches
+     * Get all vector layers - DIRECT APPROACH using QgsProject
      */
     function getVectorLayers() {
+        console.log("[Render Sync] ========== GET VECTOR LAYERS (DIRECT) ==========")
+        
+        var layers = []
+        
+        // DIRECT APPROACH: Use QgsProject.instance() directly
+        displayToast("🔍 Trying direct QgsProject.instance()...", "info")
+        
+        try {
+            // Import QgsProject if not already available
+            var project = QgsProject.instance()
+            
+            if (!project) {
+                displayToast("❌ QgsProject.instance() returned null", "error")
+                console.log("[Render Sync] QgsProject.instance() returned null")
+                return []
+            }
+            
+            displayToast("✓ Got QgsProject.instance()", "success")
+            console.log("[Render Sync] ✓ Got QgsProject.instance()")
+            
+            // Get all map layers
+            var mapLayers = project.mapLayers()
+            var layerCount = Object.keys(mapLayers).length
+            
+            displayToast("Project has " + layerCount + " total layers", "info")
+            console.log("[Render Sync] Project has", layerCount, "map layers")
+            
+            // Filter for vector layers
+            for (var layerId in mapLayers) {
+                var layer = mapLayers[layerId]
+                if (layer && layer.type() === 0) { // QgsMapLayer.VectorLayer = 0
+                    console.log("[Render Sync] ✓ Found vector layer:", layer.name())
+                    layers.push(layer)
+                }
+            }
+            
+            if (layers.length > 0) {
+                var layerNames = []
+                for (var i = 0; i < layers.length; i++) {
+                    layerNames.push(layers[i].name())
+                }
+                displayToast("✅ Found " + layers.length + " vector layer(s): " + layerNames.join(", "), "success")
+                console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "vector layers")
+            } else {
+                displayToast("⚠️ No vector layers found (only raster/basemaps?)", "warning")
+                console.log("[Render Sync] No vector layers found")
+            }
+            
+        } catch (e) {
+            displayToast("❌ ERROR: " + e.toString(), "error")
+            console.log("[Render Sync] ERROR accessing QgsProject:", e)
+            console.log("[Render Sync] Stack:", e.stack)
+        }
+        
+        return layers
+    }
+    
+    /**
+     * Get all vector layers - OLD MULTI-APPROACH METHOD (BACKUP)
+     */
+    function getVectorLayersOLD() {
         console.log("[Render Sync] ========== GET VECTOR LAYERS ==========")
         console.log("[Render Sync] iface exists:", !!iface)
         
