@@ -48,9 +48,6 @@ Item {
     property bool syncInProgress: false
     property bool loadingConfig: false
     
-    /**
-     * Initialize plugin on load
-     */
     Component.onCompleted: {
         console.log("[Render Sync] Plugin loading...")
         

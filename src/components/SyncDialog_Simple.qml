@@ -31,6 +31,7 @@ Popup {
     
     onOpened: {
         console.log("[SyncDialog] Dialog opened")
+        debugLogArea.text = "Dialog opened at " + new Date().toLocaleTimeString() + "\n"
         if (plugin && plugin.displayToast) {
             plugin.displayToast("Loading layers...")
         }
@@ -40,7 +41,7 @@ Popup {
     
     function loadLayers() {
         console.log("[SyncDialog] Loading layers...")
-        debugLogArea.text = "Loading layers...\n"
+        debugLogArea.text += "Loading layers...\n"
         layerComboBox.model.clear()
         
         if (!plugin) {
@@ -54,7 +55,9 @@ Popup {
         debugLogArea.text += "Plugin exists: " + !!plugin + "\n"
         
         try {
+            debugLogArea.text += "About to call getVectorLayersWithDebug()\n"
             var result = plugin.getVectorLayersWithDebug()
+            debugLogArea.text += "getVectorLayersWithDebug() returned\n"
             var layers = result.layers
             var debugInfo = result.debugInfo
             
