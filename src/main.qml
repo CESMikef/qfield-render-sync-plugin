@@ -518,9 +518,9 @@ Item {
             displayToast("✓ qgisProject exists")
             diagnosticMessages.push("qgisProject: exists")
             
-            // Get map layers from qgisProject
-            var mapLayers = qgisProject.mapLayers()
-            console.log("[Render Sync] qgisProject.mapLayers() returned:", typeof mapLayers, mapLayers)
+            // Get map layers from qgisProject (it's a property, not a function!)
+            var mapLayers = qgisProject.mapLayers
+            console.log("[Render Sync] qgisProject.mapLayers returned:", typeof mapLayers, mapLayers)
             
             if (!mapLayers) {
                 displayToast("❌ mapLayers() returned: " + (mapLayers === null ? "null" : "undefined"))
