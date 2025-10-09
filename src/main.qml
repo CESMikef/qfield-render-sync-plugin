@@ -518,44 +518,73 @@ Item {
             displayToast("✓ qgisProject exists")
             diagnosticMessages.push("qgisProject: exists")
             
-            // Get map layers from qgisProject (it's a property, not a function!)
-            var mapLayers = qgisProject.mapLayers
-            console.log("[Render Sync] qgisProject.mapLayers returned:", typeof mapLayers, mapLayers)
+            // Try multiple approaches to get layers
+            var layerArray = []
             
-            if (!mapLayers) {
-                displayToast("❌ mapLayers() returned: " + (mapLayers === null ? "null" : "undefined"))
-                diagnosticMessages.push("mapLayers: " + (mapLayers === null ? "null" : "undefined"))
-                return []
+            // Approach 1: Try mapLayers property
+            try {
+                var mapLayers = qgisProject.mapLayers
+                console.log("[Render Sync] qgisProject.mapLayers:", typeof mapLayers, mapLayers)
+                displayToast("mapLayers: " + (mapLayers === undefined ? "undefined" : mapLayers === null ? "null" : typeof mapLayers))
+                
+                if (mapLayers && mapLayers.length !== undefined) {
+                    displayToast("✓ mapLayers has length: " + mapLayers.length)
+                    layerArray = mapLayers
+                } else if (mapLayers && typeof mapLayers.values === 'function') {
+                    displayToast("✓ mapLayers has values()")
+                    var values = mapLayers.values()
+                    for (var i = 0; i < values.length; i++) {
+                        layerArray.push(values[i])
+                    }
+                }
+            } catch (e) {
+                console.log("[Render Sync] mapLayers approach failed:", e)
+                displayToast("mapLayers failed: " + e.toString())
             }
             
-            var mapLayersType = typeof mapLayers
-            displayToast("mapLayers type: " + mapLayersType)
-            diagnosticMessages.push("mapLayers type: " + mapLayersType)
-            
-            // Check if it has length property
-            var hasLength = mapLayers.length !== undefined
-            displayToast("Has length: " + hasLength + (hasLength ? " (" + mapLayers.length + ")" : ""))
-            
-            // Check if it has values method (QMap)
-            var hasValues = typeof mapLayers.values === 'function'
-            displayToast("Has values(): " + hasValues)
-            
-            // Convert to array if it's not already
-            var layerArray = []
-            if (hasLength) {
-                // It's already an array-like object
-                displayToast("✓ Using array-like access")
-                layerArray = mapLayers
-            } else if (hasValues) {
-                // It's a QMap, convert to array
-                displayToast("✓ Using QMap.values()")
-                var values = mapLayers.values()
-                for (var i = 0; i < values.length; i++) {
-                    layerArray.push(values[i])
+            // Approach 2: Try layerCount() and layerStore() methods
+            if (layerArray.length === 0) {
+                try {
+                    displayToast("Trying layerCount()...")
+                    var layerCount = qgisProject.layerCount()
+                    console.log("[Render Sync] layerCount():", layerCount)
+                    displayToast("layerCount: " + layerCount)
+                    
+                    if (layerCount > 0) {
+                        // Try to get layers by index or other method
+                        displayToast("Trying to get layers by index...")
+                        for (var i = 0; i < layerCount; i++) {
+                            try {
+                                var layer = qgisProject.mapLayer(i)
+                                if (layer) {
+                                    layerArray.push(layer)
+                                    displayToast("Got layer " + (i+1))
+                                }
+                            } catch (e2) {
+                                console.log("[Render Sync] Error getting layer", i, ":", e2)
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.log("[Render Sync] layerCount approach failed:", e)
+                    displayToast("layerCount failed: " + e.toString())
                 }
-            } else {
-                displayToast("❌ Cannot determine collection type")
-                diagnosticMessages.push("Cannot determine collection type")
+            }
+            
+            // Approach 3: Try mapLayersByName or other methods
+            if (layerArray.length === 0) {
+                displayToast("❌ All approaches failed to get layers")
+                console.log("[Render Sync] Cannot access layers from qgisProject")
+                
+                // Log all available properties/methods
+                displayToast("Checking qgisProject properties...")
+                var props = []
+                for (var prop in qgisProject) {
+                    props.push(prop + ":" + typeof qgisProject[prop])
+                }
+                console.log("[Render Sync] qgisProject properties:", props.join(", "))
+                displayToast("qgisProject has " + props.length + " properties")
+                
                 return []
             }
             
