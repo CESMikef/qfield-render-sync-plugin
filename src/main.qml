@@ -480,23 +480,41 @@ Item {
         
         if (!qfProject) {
             console.log("[Render Sync] No project loaded")
+            displayToast("No project loaded")
             return []
         }
         
         var layers = []
         var mapLayers = qfProject.mapLayers()
         console.log("[Render Sync] Project has", Object.keys(mapLayers).length, "map layers")
+        console.log("[Render Sync] mapLayers object:", JSON.stringify(Object.keys(mapLayers)))
         
         for (var layerId in mapLayers) {
             var layer = mapLayers[layerId]
-            console.log("[Render Sync] Checking layer:", layer ? layer.name() : "null", "type:", layer ? layer.type() : "null")
-            if (layer && layer.type() === QgsMapLayer.VectorLayer) {
-                console.log("[Render Sync] Adding vector layer:", layer.name())
+            if (!layer) {
+                console.log("[Render Sync] Layer is null for ID:", layerId)
+                continue
+            }
+            
+            console.log("[Render Sync] Layer:", layer.name())
+            console.log("[Render Sync] Layer type:", layer.type())
+            console.log("[Render Sync] Layer type name:", layer.type() === 0 ? "Vector" : layer.type() === 1 ? "Raster" : "Other")
+            
+            // QgsMapLayer.VectorLayer = 0
+            if (layer.type() === 0) {
+                console.log("[Render Sync] ✓ Adding vector layer:", layer.name())
                 layers.push(layer)
+            } else {
+                console.log("[Render Sync] ✗ Skipping non-vector layer:", layer.name())
             }
         }
         
         console.log("[Render Sync] Returning", layers.length, "vector layers")
+        if (layers.length === 0) {
+            displayToast("No vector layers found in project")
+        } else {
+            displayToast("Found " + layers.length + " vector layer(s)")
+        }
         return layers
     }
 }
