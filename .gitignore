@@ -30,3 +30,19 @@ desktop.ini
 
 # Test files
 test_*.qml
+*_Test.qml
+*_test.qml
+
+# Temporary/backup files
+temp_*/
+*_backup/
+*_old/
+
+# Development status files (keep these out of repo)
+*STATUS*.md
+*DEBUG*.md
+*FIXES*.md
+*DEPLOY_v*.md
+*RELEASE_v*.md
+*_CHANGES.md
+*_DIAGNOSTICS.md

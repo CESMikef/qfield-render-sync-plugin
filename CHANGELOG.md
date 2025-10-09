@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.8.0 (2025-10-09) - Repository Cleanup & Simplification
+
+### 🧹 Major Cleanup
+- **Removed 26+ old release ZIP files** from root directory
+- **Removed temp_check/** duplicate directory (complete copy of src/)
+- **Removed 8 debug/status markdown files** from development iterations
+- **Removed utility scripts** (insert_function.ps1, main_layer_function.qml)
+- **Removed backup files** (main_backup.qml, main_temp.qml, main_insert.txt)
+- **Consolidated dialog files** - removed test variants, kept single production version
+
+### 📁 Simplified Structure
+- Renamed `SyncDialog_Simple.qml` → `SyncDialog.qml` (now the only dialog)
+- Clean `src/` directory with only production files
+- Updated `.gitignore` to prevent future clutter
+- Clean root directory with essential files only
+
+### 📚 Documentation Updates
+- Updated README with correct GitHub URLs
+- Updated version numbers across all files
+- Simplified configuration documentation
+- Removed outdated server-specific URLs
+
+### 🎯 Result
+Repository is now clean, maintainable, and easy to navigate!
+
+---
+
 ## v2.3.0 (2025-10-09) - Enhanced Layer & Photo Detection
 
 ### 🔧 Critical Fixes

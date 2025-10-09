@@ -1,4 +1,4 @@
-﻿/**
+/**
  * QField Render Sync Plugin
  * ==========================
  * 
@@ -27,7 +27,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.5.4"
+    property string pluginVersion: "2.8.0"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -425,7 +425,7 @@ Item {
         id: syncDialogLoader
         active: false
         asynchronous: false  // Changed to synchronous for better error messages
-        source: "components/SyncDialog_Simple.qml"  // Using simplified dialog
+        source: "components/SyncDialog.qml"
         
         onLoaded: {
             console.log("[Render Sync] Loader onLoaded triggered")

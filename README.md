@@ -2,7 +2,7 @@
 
 **Mobile plugin for QField that syncs field-captured photos to WebDAV storage and PostgreSQL database.**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/YOUR_ORG/qfield-render-sync-plugin/releases)
+[![Version](https://img.shields.io/badge/version-2.8.0-blue.svg)](https://github.com/CESMikef/qfield-render-sync-plugin/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![QField](https://img.shields.io/badge/QField-3.0%2B-orange.svg)](https://qfield.org)
 
@@ -29,14 +29,14 @@ This plugin eliminates the need to store photos in QFieldCloud by automatically 
 3. Click **"Install from URL"**
 4. Enter:
    ```
-   https://github.com/YOUR_ORG/qfield-render-sync-plugin/releases/download/v1.0.0/qfield-render-sync-v1.0.0.zip
+   https://github.com/CESMikef/qfield-render-sync-plugin/releases/latest/download/qfield-render-sync-v2.8.0.zip
    ```
 5. Click **Install**
 6. Enable the plugin
 
 ### Manual Install
 
-1. Download the [latest release ZIP](https://github.com/YOUR_ORG/qfield-render-sync-plugin/releases/latest)
+1. Download the [latest release ZIP](https://github.com/CESMikef/qfield-render-sync-plugin/releases/latest)
 2. Transfer to your device
 3. **QField → Settings → Plugins → Install from file**
 4. Select the ZIP file
@@ -46,45 +46,37 @@ This plugin eliminates the need to store photos in QFieldCloud by automatically 
 
 ## 🚀 Quick Start
 
-### For Administrators
+### First Time Setup
 
-1. **Configure QGIS Project**
-   - Open QGIS Desktop
-   - Project → Properties → Variables
-   - Add 7 configuration variables (see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md))
+1. **Install Plugin** (see Installation above)
+2. **Get Your Token** from your administrator
+3. **Open QField** and load your project
 
-2. **Upload to QFieldCloud**
-   - Save project
-   - Push to QFieldCloud
+### Syncing Photos
 
-3. **Done!** Configuration automatically syncs to mobile devices
-
-### For Field Workers
-
-1. **Download Project**
-   - Pull project from QFieldCloud
-   - Plugin loads automatically
-
-2. **Capture Photos**
-   - Navigate to site
-   - Take photos in QField
+1. **Capture Photos**
+   - Navigate to site in QField
+   - Take photos and attach to features
    - Photos saved locally
 
-3. **Sync Photos**
-   - Tap "Sync Photos" button
-   - Select layer
+2. **Click "Sync Photos"**
+   - Tap the "Sync Photos" button in toolbar
+   - Enter your API token (first time only)
+   - Select the layer with photos
    - Click "Start Sync"
-   - Photos upload to server
+
+3. **Done!**
+   - Photos upload to WebDAV server
+   - Database updates with photo URLs
+   - Local layer shows web URLs
 
 ---
 
 ## 📚 Documentation
 
-- **[User Guide](docs/README.md)** - Complete usage instructions
-- **[Quick Start](docs/QUICKSTART.md)** - 5-minute setup guide
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment
-- **[Workflow Guide](docs/WORKFLOW_GUIDE.md)** - Complete field workflow
-- **[Testing Guide](docs/TESTING.md)** - Testing procedures
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Step-by-step deployment instructions
+- **[Workflow Guide](docs/WORKFLOW_GUIDE.md)** - Complete field workflow details
+- **[Testing Guide](docs/TESTING.md)** - Comprehensive testing procedures
 
 ---
 
@@ -96,46 +88,45 @@ QField Mobile
 Plugin (QML/JavaScript)
     ↓
     ├─→ WebDAV Server (Photo Storage)
-    │   https://qfield-photo-storage-v3.onrender.com
     │
     └─→ REST API (Database Updates)
-        https://ces-qgis-qfield-v1.onrender.com
             ↓
         PostgreSQL Database
 ```
+
+Configuration is loaded from the API endpoint using a token.
 
 ---
 
 ## ⚙️ Requirements
 
 ### Server Side
-- **REST API** - [qfield-photo-sync-api](https://github.com/YOUR_ORG/qfield-photo-sync-api)
+- **REST API** - Backend API providing token-based configuration
 - **WebDAV Server** - For photo storage
-- **PostgreSQL Database** - For metadata
+- **PostgreSQL Database** - For metadata storage
 
 ### Client Side
 - **QField** - Version 3.0 or higher
-- **QGIS Desktop** - For project configuration
-- **QFieldCloud** - For project synchronization
-- **Internet Connection** - For photo upload
+- **QGIS Desktop** - For project setup (optional)
+- **Internet Connection** - For photo upload and API access
 
 ---
 
 ## 🔧 Configuration
 
-All configuration is stored in QGIS project variables:
+Configuration is loaded from the backend API using a token:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `render_webdav_url` | WebDAV server URL | `https://qfield-photo-storage-v3.onrender.com` |
-| `render_webdav_username` | WebDAV username | `qfield` |
-| `render_webdav_password` | WebDAV password | `qfield123` |
-| `render_api_url` | REST API URL | `https://ces-qgis-qfield-v1.onrender.com` |
-| `render_api_token` | API authentication token | `qwrfzf23t2345t23fef23123r` |
-| `render_db_table` | Database table name | `design.verify_poles` |
-| `render_photo_field` | Photo field name | `photo` |
+1. **Enter Token**: First time you click "Sync Photos", enter your API token
+2. **Auto-Configuration**: Plugin fetches all settings from the API
+3. **Start Syncing**: Configuration is stored for the session
 
-**No manual configuration needed on mobile devices!** ✅
+**What's Configured Automatically:**
+- WebDAV server URL and credentials
+- API endpoint
+- Database table name
+- Photo field name
+
+**No manual setup needed!** ✅ Just enter your token once per session.
 
 ---
 
@@ -165,12 +156,11 @@ All configuration is stored in QGIS project variables:
 
 ## 🔄 Workflow
 
-1. **Office**: Configure QGIS project with variables
-2. **Office**: Upload project to QFieldCloud
-3. **Field**: Download project to mobile device
-4. **Field**: Capture photos on-site
-5. **Field**: Sync photos to server
-6. **Office**: View updated data with photo URLs
+1. **Setup**: Install plugin and get API token
+2. **Field**: Open project in QField
+3. **Field**: Capture photos on-site
+4. **Field**: Click "Sync Photos" → Enter token → Select layer → Start Sync
+5. **Result**: Photos uploaded to WebDAV, database updated with URLs
 
 See [docs/WORKFLOW_GUIDE.md](docs/WORKFLOW_GUIDE.md) for detailed workflow.
 
@@ -182,20 +172,23 @@ See [docs/WORKFLOW_GUIDE.md](docs/WORKFLOW_GUIDE.md) for detailed workflow.
 
 ```
 qfield-render-sync-plugin/
-├── src/                    # Plugin source code
-│   ├── main.qml           # Entry point
-│   ├── metadata.txt       # Plugin metadata
-│   ├── icon.svg           # Plugin icon
-│   ├── components/        # UI components
-│   │   └── SyncDialog.qml
-│   └── js/                # JavaScript modules
-│       ├── utils.js
-│       ├── webdav_client.js
-│       ├── api_client.js
-│       └── sync_engine.js
-├── docs/                  # Documentation
-├── scripts/               # Build scripts
-└── .github/workflows/     # CI/CD
+├── src/                      # Plugin source code
+│   ├── main.qml             # Entry point
+│   ├── metadata.txt         # Plugin metadata
+│   ├── icon.svg             # Plugin icon
+│   ├── components/          # UI components
+│   │   ├── SyncDialog.qml   # Main sync interface
+│   │   └── TokenDialog.qml  # Token configuration
+│   └── js/                  # JavaScript modules
+│       ├── utils.js         # Utility functions
+│       ├── webdav_client.js # WebDAV upload client
+│       ├── api_client.js    # REST API client
+│       └── sync_engine.js   # Sync orchestration
+├── docs/                    # Documentation
+├── scripts/                 # Build scripts
+│   └── package.ps1
+└── .github/workflows/       # CI/CD
+    └── release.yml
 ```
 
 ### Building
@@ -205,7 +198,7 @@ cd scripts
 .\package.ps1
 ```
 
-This creates `qfield-render-sync-v1.0.0.zip` in the parent directory.
+This creates `qfield-render-sync-v2.8.0.zip` in the parent directory.
 
 ### Testing
 
@@ -215,7 +208,6 @@ See [docs/TESTING.md](docs/TESTING.md) for testing procedures.
 
 ## 🤝 Related Projects
 
-- **[QField Photo Sync API](https://github.com/YOUR_ORG/qfield-photo-sync-api)** - Backend REST API
 - **[QField](https://qfield.org)** - Mobile GIS application
 - **[QGIS](https://qgis.org)** - Desktop GIS application
 
@@ -223,11 +215,19 @@ See [docs/TESTING.md](docs/TESTING.md) for testing procedures.
 
 ## 📝 Changelog
 
+### v2.8.0 (2025-10-09)
+- Major repository cleanup and simplification
+- Removed 26+ old release ZIP files
+- Removed duplicate temp directories
+- Consolidated to single production dialog
+- Enhanced layer detection with multiple fallback strategies
+- Improved .gitignore to prevent future clutter
+
 ### v1.0.0 (2025-10-06)
 - Initial release
 - WebDAV upload support
 - REST API integration
-- Project variable configuration
+- Token-based configuration
 - Progress tracking
 - Error handling
 
@@ -251,7 +251,7 @@ See [docs/TESTING.md](docs/TESTING.md) for testing procedures.
 - Verify WebDAV/API services are running
 - Check credentials are correct
 
-See [docs/README.md](docs/README.md) for more troubleshooting tips.
+See [TESTING_GUIDE.md](TESTING_GUIDE.md) or [docs/TESTING.md](docs/TESTING.md) for more troubleshooting tips.
 
 ---
 
@@ -270,10 +270,9 @@ Developed by **CES** for field data collection workflows.
 ## 📞 Support
 
 - **Documentation**: [docs/](docs/)
-- **Issues**: [GitHub Issues](https://github.com/YOUR_ORG/qfield-render-sync-plugin/issues)
-- **API Docs**: https://ces-qgis-qfield-v1.onrender.com/docs
+- **Issues**: [GitHub Issues](https://github.com/CESMikef/qfield-render-sync-plugin/issues)
 
 ---
 
-**Last Updated**: 2025-10-07  
-**Version**: 1.0.0
+**Last Updated**: 2025-10-09  
+**Version**: 2.8.0

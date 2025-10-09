@@ -168,5 +168,5 @@ Write-Host "4. Install on mobile devices:" -ForegroundColor Yellow
 Write-Host "   - QField - Settings - Plugins" -ForegroundColor Gray
 Write-Host "   - Install from URL or file" -ForegroundColor Gray
 Write-Host ""
-Write-Host "See DEPLOYMENT.md for detailed instructions." -ForegroundColor Cyan
+Write-Host "See docs/DEPLOYMENT.md for detailed instructions." -ForegroundColor Cyan
 Write-Host ""
