@@ -27,7 +27,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.5.1"
+    property string pluginVersion: "2.5.2"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -542,17 +542,17 @@ Item {
             for (var i = 0; i < mapLayers.length; i++) {
                 var layer = mapLayers[i]
                 if (layer) {
-                    // In QField QML, type is a property, not a function
-                    // Check if it's a vector layer (type === 0 or check for vectorLayer property)
+                    // In QField QML, type and name are properties, not functions
                     var layerType = layer.type
-                    console.log("[Render Sync] Layer:", layer.name(), "Type:", layerType, "TypeOf:", typeof layerType)
+                    var layerName = layer.name
+                    console.log("[Render Sync] Layer:", layerName, "Type:", layerType, "TypeOf:", typeof layerType)
                     
                     // QgsMapLayer.VectorLayer = 0
                     if (layerType === 0 || layer.toString().indexOf("QgsVectorLayer") >= 0) {
-                        console.log("[Render Sync] ✓ Found vector layer:", layer.name())
+                        console.log("[Render Sync] ✓ Found vector layer:", layerName)
                         layers.push(layer)
                     } else {
-                        console.log("[Render Sync] ✗ Skipping non-vector layer:", layer.name())
+                        console.log("[Render Sync] ✗ Skipping non-vector layer:", layerName)
                     }
                 }
             }
@@ -560,7 +560,7 @@ Item {
             if (layers.length > 0) {
                 var layerNames = []
                 for (var j = 0; j < layers.length; j++) {
-                    layerNames.push(layers[j].name())
+                    layerNames.push(layers[j].name)  // name is a property, not function
                 }
                 displayToast("✅ SUCCESS! Found " + layers.length + " vector layer(s)", "success")
                 console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
