@@ -1,7 +1,7 @@
 # QField Render Sync Plugin - Current Development Status
 
 **Date:** 2025-10-09  
-**Current Version:** v2.3.0  
+**Current Version:** v2.5.4  
 **Status:** 🟡 Testing - Enhanced Layer Detection with Multiple Fallbacks
 
 ---
@@ -148,7 +148,9 @@ qfield-render-sync-plugin/
 | v2.2.0 | ✅ Success | Fixed duplicate function |
 | v2.2.1 | 🔄 Testing | Added extensive logging |
 | v2.2.2 | 🔄 Testing | Try alternative project access |
-| v2.3.0 | 🔄 Current | 5 layer detection strategies + enhanced logging |
+| v2.3.0 | 🔄 Testing | 5 layer detection strategies + enhanced logging |
+| v2.5.3 | 🔄 Testing | Fixed layer.name property access |
+| v2.5.4 | 🔄 Current | Robust multi-approach layer detection with 5 fallbacks |
 
 ---
 
@@ -352,7 +354,7 @@ The plugin will be considered complete when:
 - Console logs clearly show which approach worked
 
 **If Still Failing:**
-- Copy all console logs from "GET VECTOR LAYERS" section
+- Copy all console logs from "GET VECTOR LAYERS (MULTI-APPROACH)" section
 - Note which approaches show "✓" vs "✗"
 - Check if `iface` properties match expected values
 - Report findings for further API investigation
