@@ -497,6 +497,98 @@ Item {
     }
     
     /**
+     * Get all vector layers with debug information
+     */
+    function getVectorLayersWithDebug() {
+        var debugInfo = ""
+        var layers = []
+        
+        debugInfo += "=== GET VECTOR LAYERS ===\n"
+        
+        try {
+            if (typeof qgisProject === 'undefined' || !qgisProject) {
+                debugInfo += "ERROR: qgisProject is " + (typeof qgisProject === 'undefined' ? "undefined" : "null") + "\n"
+                return { layers: [], debugInfo: debugInfo }
+            }
+            
+            debugInfo += "✓ qgisProject exists\n"
+            
+            // Get all properties
+            debugInfo += "\n=== qgisProject Properties ===\n"
+            var props = []
+            var layerProps = []
+            
+            for (var prop in qgisProject) {
+                var propType = typeof qgisProject[prop]
+                props.push(prop)
+                
+                var propLower = prop.toLowerCase()
+                if (propLower.indexOf("layer") >= 0 || propLower.indexOf("map") >= 0) {
+                    layerProps.push(prop + " (" + propType + ")")
+                }
+            }
+            
+            debugInfo += "Total properties: " + props.length + "\n"
+            debugInfo += "\nLayer-related properties:\n"
+            for (var i = 0; i < layerProps.length; i++) {
+                debugInfo += "  " + layerProps[i] + "\n"
+            }
+            
+            // Try mapLayersByName
+            debugInfo += "\n=== Trying mapLayersByName() ===\n"
+            if (typeof qgisProject.mapLayersByName === 'function') {
+                debugInfo += "✓ mapLayersByName exists\n"
+                // We need a layer name to test this
+            } else {
+                debugInfo += "✗ mapLayersByName not available\n"
+            }
+            
+            // Try layerTreeRoot
+            debugInfo += "\n=== Trying layerTreeRoot() ===\n"
+            if (typeof qgisProject.layerTreeRoot === 'function') {
+                debugInfo += "✓ layerTreeRoot exists\n"
+                try {
+                    var root = qgisProject.layerTreeRoot()
+                    if (root) {
+                        debugInfo += "✓ Got layerTreeRoot\n"
+                        
+                        if (typeof root.children === 'function') {
+                            var children = root.children()
+                            debugInfo += "✓ layerTreeRoot has " + children.length + " children\n"
+                            
+                            for (var i = 0; i < children.length; i++) {
+                                var child = children[i]
+                                debugInfo += "  Child " + i + ": " + (child.name || "unknown") + "\n"
+                                
+                                if (child.layer && typeof child.layer === 'function') {
+                                    var layer = child.layer()
+                                    if (layer && layer.type === 0) {
+                                        layers.push(layer)
+                                        debugInfo += "    ✓ Added vector layer: " + layer.name + "\n"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    debugInfo += "✗ layerTreeRoot error: " + e.toString() + "\n"
+                }
+            } else {
+                debugInfo += "✗ layerTreeRoot not available\n"
+            }
+            
+            debugInfo += "\n=== RESULT ===\n"
+            debugInfo += "Found " + layers.length + " vector layers\n"
+            
+        } catch (e) {
+            debugInfo += "\nEXCEPTION: " + e.toString() + "\n"
+            debugInfo += "Stack: " + e.stack + "\n"
+        }
+        
+        return { layers: layers, debugInfo: debugInfo }
+    }
+    
+    /**
      * Get all vector layers - QFIELD QGIS PROJECT APPROACH WITH TOAST DIAGNOSTICS
      */
     function getVectorLayers() {

@@ -40,22 +40,32 @@ Popup {
     
     function loadLayers() {
         console.log("[SyncDialog] Loading layers...")
+        debugLogArea.text = "Loading layers...\n"
         layerComboBox.model.clear()
         
         if (!plugin) {
             console.log("[SyncDialog] ERROR: No plugin reference")
+            debugLogArea.text += "ERROR: No plugin reference\n"
             return
         }
         
         console.log("[SyncDialog] Plugin:", plugin)
         console.log("[SyncDialog] Plugin.qfProject:", plugin.qfProject)
+        debugLogArea.text += "Plugin exists: " + !!plugin + "\n"
         
         try {
-            var layers = plugin.getVectorLayers()
+            var result = plugin.getVectorLayersWithDebug()
+            var layers = result.layers
+            var debugInfo = result.debugInfo
+            
+            debugLogArea.text += debugInfo
+            
             console.log("[SyncDialog] Got " + layers.length + " vector layers")
+            debugLogArea.text += "\nGot " + layers.length + " vector layers\n"
             
             if (layers.length === 0) {
                 console.log("[SyncDialog] WARNING: No vector layers found in project")
+                debugLogArea.text += "WARNING: No vector layers found\n"
                 layerComboBox.model.append({
                     text: "No layers found",
                     layer: null
@@ -67,6 +77,7 @@ Popup {
                 var layer = layers[i]
                 var layerName = layer.name  // name is a property in QField QML
                 console.log("[SyncDialog] Adding layer:", layerName)
+                debugLogArea.text += "Adding layer: " + layerName + "\n"
                 layerComboBox.model.append({
                     text: layerName,
                     layer: layer
@@ -74,9 +85,12 @@ Popup {
             }
             
             console.log("[SyncDialog] Layer loading complete")
+            debugLogArea.text += "Layer loading complete!\n"
         } catch (e) {
             console.log("[SyncDialog] ERROR loading layers:", e)
             console.log("[SyncDialog] Stack:", e.stack)
+            debugLogArea.text += "ERROR: " + e.toString() + "\n"
+            debugLogArea.text += "Stack: " + e.stack + "\n"
         }
     }
     
@@ -240,6 +254,25 @@ Popup {
             font.pixelSize: 16
             font.bold: true
             color: totalPhotos > 0 ? "#FF9800" : "#4CAF50"
+        }
+        
+        // Debug log area
+        ScrollView {
+            id: debugScrollView
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.minimumHeight: 150
+            clip: true
+            
+            TextArea {
+                id: debugLogArea
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                font.pixelSize: 10
+                font.family: "Courier New"
+                text: "Debug logs will appear here..."
+                selectByMouse: true
+            }
         }
         
         Item { Layout.fillHeight: true }
