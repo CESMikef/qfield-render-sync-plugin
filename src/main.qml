@@ -477,10 +477,29 @@ Item {
      */
     function getVectorLayers() {
         console.log("[Render Sync] getVectorLayers called")
+        console.log("[Render Sync] iface:", iface)
+        console.log("[Render Sync] iface.project:", iface ? iface.project : "iface is null")
+        console.log("[Render Sync] qfProject:", qfProject)
+        
+        // Try alternative ways to get project
+        if (!qfProject && iface) {
+            console.log("[Render Sync] Trying iface.mapCanvas()...")
+            var canvas = iface.mapCanvas()
+            if (canvas) {
+                console.log("[Render Sync] Canvas found, trying canvas.project()...")
+                var canvasProject = canvas.project()
+                if (canvasProject) {
+                    console.log("[Render Sync] Got project from canvas!")
+                    qfProject = canvasProject
+                }
+            }
+        }
         
         if (!qfProject) {
-            console.log("[Render Sync] No project loaded")
-            displayToast("No project loaded")
+            console.log("[Render Sync] ERROR: No project loaded")
+            console.log("[Render Sync] iface exists:", !!iface)
+            console.log("[Render Sync] iface.project exists:", iface && !!iface.project)
+            displayToast("No project loaded - check console")
             return []
         }
         
