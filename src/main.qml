@@ -501,116 +501,191 @@ Item {
      */
     function getVectorLayers() {
         console.log("[Render Sync] ========== GET VECTOR LAYERS (MULTI-APPROACH) ==========")
-        
+
         var layers = []
         var approachCount = 5
-        
+
+        // DEBUG: Log iface properties
+        console.log("[Render Sync] DEBUG: iface properties:")
+        if (iface) {
+            for (var prop in iface) {
+                console.log("[Render Sync]   iface." + prop + ":", typeof iface[prop])
+            }
+        } else {
+            console.log("[Render Sync]   iface is null!")
+        }
+
+        // DEBUG: Log qgis properties
+        console.log("[Render Sync] DEBUG: qgis properties:")
+        if (typeof qgis !== 'undefined') {
+            for (var prop in qgis) {
+                console.log("[Render Sync]   qgis." + prop + ":", typeof qgis[prop])
+            }
+        } else {
+            console.log("[Render Sync]   qgis is undefined!")
+        }
+
         // Approach 1: iface.project (QGIS Desktop style)
         console.log("[Render Sync] Approach 1: iface.project")
         try {
             if (iface && iface.project) {
+                console.log("[Render Sync] Approach 1: iface.project exists")
                 var projectLayers = iface.project.mapLayers()
-                console.log("[Render Sync] Approach 1: Found", projectLayers.length, "layers in iface.project")
-                if (projectLayers.length > 0) {
+                console.log("[Render Sync] Approach 1: mapLayers() returned:", typeof projectLayers, projectLayers)
+
+                if (projectLayers && projectLayers.length !== undefined) {
+                    console.log("[Render Sync] Approach 1: Found", projectLayers.length, "layers in iface.project")
+                    debugLogLayers(projectLayers, "Approach 1")
                     layers = filterVectorLayers(projectLayers)
                     if (layers.length > 0) {
                         console.log("[Render Sync] ✓ SUCCESS - Approach 1 worked! Found", layers.length, "vector layers")
                         displayToast("✅ SUCCESS! Layers found via iface.project", "success")
                         return layers
                     }
+                } else {
+                    console.log("[Render Sync] Approach 1: mapLayers() returned invalid result:", projectLayers)
                 }
+            } else {
+                console.log("[Render Sync] Approach 1: iface.project not available")
             }
             console.log("[Render Sync] ✗ Approach 1 failed - no project or no layers")
         } catch (e) {
             console.log("[Render Sync] ✗ Approach 1 exception:", e)
+            console.log("[Render Sync] ✗ Approach 1 stack:", e.stack)
         }
-        
+
         // Approach 2: iface.mapCanvas().project()
         console.log("[Render Sync] Approach 2: iface.mapCanvas().project()")
         try {
             if (iface && iface.mapCanvas && iface.mapCanvas().project) {
+                console.log("[Render Sync] Approach 2: iface.mapCanvas().project exists")
                 var canvasProject = iface.mapCanvas().project()
+                console.log("[Render Sync] Approach 2: canvasProject:", typeof canvasProject, canvasProject)
+
                 if (canvasProject) {
                     var canvasLayers = canvasProject.mapLayers()
-                    console.log("[Render Sync] Approach 2: Found", canvasLayers.length, "layers in mapCanvas.project")
-                    if (canvasLayers.length > 0) {
+                    console.log("[Render Sync] Approach 2: mapLayers() returned:", typeof canvasLayers, canvasLayers)
+
+                    if (canvasLayers && canvasLayers.length !== undefined) {
+                        console.log("[Render Sync] Approach 2: Found", canvasLayers.length, "layers in mapCanvas.project")
+                        debugLogLayers(canvasLayers, "Approach 2")
                         layers = filterVectorLayers(canvasLayers)
                         if (layers.length > 0) {
                             console.log("[Render Sync] ✓ SUCCESS - Approach 2 worked! Found", layers.length, "vector layers")
                             displayToast("✅ SUCCESS! Layers found via mapCanvas.project", "success")
                             return layers
                         }
+                    } else {
+                        console.log("[Render Sync] Approach 2: mapLayers() returned invalid result:", canvasLayers)
                     }
+                } else {
+                    console.log("[Render Sync] Approach 2: canvasProject is null")
                 }
+            } else {
+                console.log("[Render Sync] Approach 2: mapCanvas or project method not available")
             }
             console.log("[Render Sync] ✗ Approach 2 failed - no mapCanvas or no project")
         } catch (e) {
             console.log("[Render Sync] ✗ Approach 2 exception:", e)
+            console.log("[Render Sync] ✗ Approach 2 stack:", e.stack)
         }
-        
+
         // Approach 3: iface.mapCanvas().layers() (direct canvas access)
         console.log("[Render Sync] Approach 3: iface.mapCanvas().layers()")
         try {
             if (iface && iface.mapCanvas && iface.mapCanvas().layers) {
+                console.log("[Render Sync] Approach 3: iface.mapCanvas().layers exists")
                 var directLayers = iface.mapCanvas().layers()
-                console.log("[Render Sync] Approach 3: Found", directLayers.length, "layers in mapCanvas.layers")
-                if (directLayers.length > 0) {
+                console.log("[Render Sync] Approach 3: layers() returned:", typeof directLayers, directLayers)
+
+                if (directLayers && directLayers.length !== undefined) {
+                    console.log("[Render Sync] Approach 3: Found", directLayers.length, "layers in mapCanvas.layers")
+                    debugLogLayers(directLayers, "Approach 3")
                     layers = filterVectorLayers(directLayers)
                     if (layers.length > 0) {
                         console.log("[Render Sync] ✓ SUCCESS - Approach 3 worked! Found", layers.length, "vector layers")
                         displayToast("✅ SUCCESS! Layers found via mapCanvas.layers", "success")
                         return layers
                     }
+                } else {
+                    console.log("[Render Sync] Approach 3: layers() returned invalid result:", directLayers)
                 }
+            } else {
+                console.log("[Render Sync] Approach 3: mapCanvas or layers method not available")
             }
             console.log("[Render Sync] ✗ Approach 3 failed - no mapCanvas.layers")
         } catch (e) {
             console.log("[Render Sync] ✗ Approach 3 exception:", e)
+            console.log("[Render Sync] ✗ Approach 3 stack:", e.stack)
         }
-        
+
         // Approach 4: QgsProject.instance() (global singleton)
         console.log("[Render Sync] Approach 4: QgsProject.instance()")
         try {
             if (typeof qgis !== 'undefined' && qgis.QgsProject && qgis.QgsProject.instance) {
+                console.log("[Render Sync] Approach 4: qgis.QgsProject.instance exists")
                 var globalProject = qgis.QgsProject.instance()
+                console.log("[Render Sync] Approach 4: globalProject:", typeof globalProject, globalProject)
+
                 if (globalProject) {
                     var globalLayers = globalProject.mapLayers()
-                    console.log("[Render Sync] Approach 4: Found", globalLayers.length, "layers in QgsProject.instance")
-                    if (globalLayers.length > 0) {
+                    console.log("[Render Sync] Approach 4: mapLayers() returned:", typeof globalLayers, globalLayers)
+
+                    if (globalLayers && globalLayers.length !== undefined) {
+                        console.log("[Render Sync] Approach 4: Found", globalLayers.length, "layers in QgsProject.instance")
+                        debugLogLayers(globalLayers, "Approach 4")
                         layers = filterVectorLayers(globalLayers)
                         if (layers.length > 0) {
                             console.log("[Render Sync] ✓ SUCCESS - Approach 4 worked! Found", layers.length, "vector layers")
                             displayToast("✅ SUCCESS! Layers found via QgsProject.instance", "success")
                             return layers
                         }
+                    } else {
+                        console.log("[Render Sync] Approach 4: mapLayers() returned invalid result:", globalLayers)
                     }
+                } else {
+                    console.log("[Render Sync] Approach 4: globalProject is null")
                 }
+            } else {
+                console.log("[Render Sync] Approach 4: qgis.QgsProject.instance not available")
             }
             console.log("[Render Sync] ✗ Approach 4 failed - no global project")
         } catch (e) {
             console.log("[Render Sync] ✗ Approach 4 exception:", e)
+            console.log("[Render Sync] ✗ Approach 4 stack:", e.stack)
         }
-        
+
         // Approach 5: iface.activeLayer() (fallback to just active layer)
         console.log("[Render Sync] Approach 5: iface.activeLayer()")
         try {
             if (iface && iface.activeLayer) {
+                console.log("[Render Sync] Approach 5: iface.activeLayer exists")
                 var activeLayer = iface.activeLayer()
+                console.log("[Render Sync] Approach 5: activeLayer:", typeof activeLayer, activeLayer)
+
                 if (activeLayer) {
                     console.log("[Render Sync] Approach 5: Found active layer:", activeLayer.name)
+                    debugLogSingleLayer(activeLayer, "Approach 5")
                     if (isVectorLayer(activeLayer)) {
                         layers = [activeLayer]
                         console.log("[Render Sync] ✓ SUCCESS - Approach 5 worked! Using active layer")
                         displayToast("✅ SUCCESS! Using active layer", "success")
                         return layers
+                    } else {
+                        console.log("[Render Sync] Approach 5: Active layer is not a vector layer")
                     }
+                } else {
+                    console.log("[Render Sync] Approach 5: activeLayer is null")
                 }
+            } else {
+                console.log("[Render Sync] Approach 5: iface.activeLayer not available")
             }
             console.log("[Render Sync] ✗ Approach 5 failed - no active layer or not vector")
         } catch (e) {
             console.log("[Render Sync] ✗ Approach 5 exception:", e)
+            console.log("[Render Sync] ✗ Approach 5 stack:", e.stack)
         }
-        
+
         // All approaches failed
         console.log("[Render Sync] ✗ ALL APPROACHES FAILED - No vector layers found")
         displayToast("❌ No vector layers found in project", "error")
@@ -642,17 +717,93 @@ Item {
      */
     function isVectorLayer(layer) {
         try {
+            console.log("[Render Sync] Checking if layer is vector:", typeof layer, layer)
+            
             // In QField QML, type is a property
             if (layer.type !== undefined) {
+                console.log("[Render Sync] Layer has type property:", layer.type, "typeof:", typeof layer.type)
                 return layer.type === 0  // QgsMapLayer.VectorLayer = 0
+            } else {
+                console.log("[Render Sync] Layer does not have type property")
             }
             
             // Fallback: check toString for "QgsVectorLayer"
             var layerString = layer.toString()
-            return layerString.indexOf("QgsVectorLayer") >= 0
+            console.log("[Render Sync] Layer toString():", layerString)
+            var isVectorByString = layerString.indexOf("QgsVectorLayer") >= 0
+            console.log("[Render Sync] Vector by string check:", isVectorByString)
+            return isVectorByString
         } catch (e) {
             console.log("[Render Sync] Error checking layer type:", e)
             return false
+        }
+    }
+    
+    /**
+     * Debug log all layers in a collection
+     */
+    function debugLogLayers(layerCollection, approachName) {
+        console.log("[Render Sync] " + approachName + " - Detailed layer analysis:")
+        
+        if (!layerCollection || layerCollection.length === undefined) {
+            console.log("[Render Sync] " + approachName + " - layerCollection is not array-like:", layerCollection)
+            return
+        }
+        
+        for (var i = 0; i < layerCollection.length; i++) {
+            var layer = layerCollection[i]
+            console.log("[Render Sync] " + approachName + " - Layer " + i + ":")
+            debugLogSingleLayer(layer, approachName + " Layer " + i)
+        }
+    }
+    
+    /**
+     * Debug log a single layer's properties
+     */
+    function debugLogSingleLayer(layer, context) {
+        console.log("[Render Sync] " + context + " - Layer object:", typeof layer, layer)
+        
+        if (!layer) {
+            console.log("[Render Sync] " + context + " - Layer is null/undefined")
+            return
+        }
+        
+        // Log all properties
+        console.log("[Render Sync] " + context + " - All properties:")
+        for (var prop in layer) {
+            try {
+                var value = layer[prop]
+                console.log("[Render Sync]   " + prop + ":", typeof value, 
+                          (typeof value === 'string' || typeof value === 'number') ? value : 
+                          (value === null || value === undefined) ? value : "complex object")
+            } catch (e) {
+                console.log("[Render Sync]   " + prop + ": [ERROR ACCESSING]", e)
+            }
+        }
+        
+        // Check common properties
+        try {
+            console.log("[Render Sync] " + context + " - name:", layer.name)
+        } catch (e) {
+            console.log("[Render Sync] " + context + " - name: [ERROR]", e)
+        }
+        
+        try {
+            console.log("[Render Sync] " + context + " - type:", layer.type)
+        } catch (e) {
+            console.log("[Render Sync] " + context + " - type: [ERROR]", e)
+        }
+        
+        try {
+            console.log("[Render Sync] " + context + " - toString():", layer.toString())
+        } catch (e) {
+            console.log("[Render Sync] " + context + " - toString(): [ERROR]", e)
+        }
+        
+        try {
+            console.log("[Render Sync] " + context + " - isVectorLayer():", isVectorLayer(layer))
+        } catch (e) {
+            console.log("[Render Sync] " + context + " - isVectorLayer(): [ERROR]", e)
         }
     }
     
