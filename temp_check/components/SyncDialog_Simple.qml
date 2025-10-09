@@ -31,8 +31,9 @@ Popup {
     
     onOpened: {
         console.log("[SyncDialog] Dialog opened")
+        debugLogArea.text = "Dialog opened at " + new Date().toLocaleTimeString() + "\n"
         if (plugin && plugin.displayToast) {
-            plugin.displayToast("Dialog opened - Loading layers...")
+            plugin.displayToast("Loading layers...")
         }
         loadLayers()
         updatePendingCount()
@@ -40,36 +41,46 @@ Popup {
     
     function loadLayers() {
         console.log("[SyncDialog] Loading layers...")
+        debugLogArea.text += "Loading layers...\n"
         layerComboBox.model.clear()
         
         if (!plugin) {
             console.log("[SyncDialog] ERROR: No plugin reference")
-            if (plugin && plugin.displayToast) {
-                plugin.displayToast("ERROR: No plugin reference", "error")
-            }
+            debugLogArea.text += "ERROR: No plugin reference\n"
             return
         }
         
+        console.log("[SyncDialog] Plugin:", plugin)
+        console.log("[SyncDialog] Plugin.qfProject:", plugin.qfProject)
+        debugLogArea.text += "Plugin exists: " + !!plugin + "\n"
+        
         try {
-            var layers = plugin.getVectorLayersV2()
+            debugLogArea.text += "About to call getVectorLayersWithDebug()\n"
+            var result = plugin.getVectorLayersWithDebug()
+            debugLogArea.text += "getVectorLayersWithDebug() returned\n"
+            var layers = result.layers
+            var debugInfo = result.debugInfo
+            
+            debugLogArea.text += debugInfo
+            
             console.log("[SyncDialog] Got " + layers.length + " vector layers")
+            debugLogArea.text += "\nGot " + layers.length + " vector layers\n"
             
             if (layers.length === 0) {
                 console.log("[SyncDialog] WARNING: No vector layers found in project")
+                debugLogArea.text += "WARNING: No vector layers found\n"
                 layerComboBox.model.append({
                     text: "No layers found",
                     layer: null
                 })
-                if (plugin && plugin.displayToast) {
-                    plugin.displayToast("No vector layers found in project", "warning")
-                }
                 return
             }
             
             for (var i = 0; i < layers.length; i++) {
                 var layer = layers[i]
-                var layerName = layer.name
+                var layerName = layer.name  // name is a property in QField QML
                 console.log("[SyncDialog] Adding layer:", layerName)
+                debugLogArea.text += "Adding layer: " + layerName + "\n"
                 layerComboBox.model.append({
                     text: layerName,
                     layer: layer
@@ -77,15 +88,12 @@ Popup {
             }
             
             console.log("[SyncDialog] Layer loading complete")
-            if (plugin && plugin.displayToast) {
-                plugin.displayToast("✅ Loaded " + layers.length + " layer(s)", "success")
-            }
+            debugLogArea.text += "Layer loading complete!\n"
         } catch (e) {
             console.log("[SyncDialog] ERROR loading layers:", e)
             console.log("[SyncDialog] Stack:", e.stack)
-            if (plugin && plugin.displayToast) {
-                plugin.displayToast("ERROR: " + e.toString(), "error")
-            }
+            debugLogArea.text += "ERROR: " + e.toString() + "\n"
+            debugLogArea.text += "Stack: " + e.stack + "\n"
         }
     }
     
@@ -251,7 +259,39 @@ Popup {
             color: totalPhotos > 0 ? "#FF9800" : "#4CAF50"
         }
         
-        Item { Layout.fillHeight: true }
+        // Debug log area
+        Text {
+            text: "Debug Log:"
+            font.pixelSize: 12
+            font.bold: true
+        }
+        
+        ScrollView {
+            id: debugScrollView
+            Layout.fillWidth: true
+            Layout.preferredHeight: 300
+            Layout.minimumHeight: 200
+            clip: true
+            
+            background: Rectangle {
+                color: "#f5f5f5"
+                border.color: "#cccccc"
+                border.width: 1
+            }
+            
+            TextArea {
+                id: debugLogArea
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                font.pixelSize: 11
+                font.family: "Courier New"
+                text: "Debug logs will appear here when you open the dialog..."
+                selectByMouse: true
+                background: Rectangle {
+                    color: "transparent"
+                }
+            }
+        }
         
         Button {
             text: syncing ? "Syncing..." : "Start Sync"

@@ -1,4 +1,115 @@
-﻿/**
+    /**
+     * Get all vector layers - V2 using layerTreeRoot()
+     * This is the correct QField API approach
+     */
+    function getVectorLayersV2() {
+        console.log("[Render Sync] ========== GET VECTOR LAYERS V2 ==========")
+        displayToast("🔍 Detecting layers...")
+        
+        var layers = []
+        
+        try {
+            // Check if qgisProject is available
+            if (typeof qgisProject === 'undefined' || !qgisProject) {
+                console.log("[Render Sync] ERROR: qgisProject not available")
+                displayToast("❌ qgisProject not available", "error")
+                return []
+            }
+            
+            displayToast("✓ qgisProject exists")
+            console.log("[Render Sync] ✓ qgisProject exists")
+            
+            // Use layerTreeRoot() - this is the correct QField API
+            if (typeof qgisProject.layerTreeRoot !== 'function') {
+                console.log("[Render Sync] ERROR: layerTreeRoot() not available")
+                displayToast("❌ layerTreeRoot() not available", "error")
+                return []
+            }
+            
+            displayToast("✓ layerTreeRoot() exists")
+            console.log("[Render Sync] ✓ layerTreeRoot() exists")
+            
+            var root = qgisProject.layerTreeRoot()
+            if (!root) {
+                console.log("[Render Sync] ERROR: layerTreeRoot() returned null")
+                displayToast("❌ layerTreeRoot() returned null", "error")
+                return []
+            }
+            
+            displayToast("✓ Got layerTreeRoot")
+            console.log("[Render Sync] ✓ Got layerTreeRoot")
+            
+            // Get children (layer nodes)
+            if (typeof root.children !== 'function') {
+                console.log("[Render Sync] ERROR: root.children() not available")
+                displayToast("❌ root.children() not available", "error")
+                return []
+            }
+            
+            var children = root.children()
+            console.log("[Render Sync] layerTreeRoot has", children.length, "children")
+            displayToast("Found " + children.length + " layer nodes")
+            
+            // Process each child
+            for (var i = 0; i < children.length; i++) {
+                var child = children[i]
+                console.log("[Render Sync] Processing child", i, ":", child)
+                
+                try {
+                    // Get the layer from the tree node
+                    if (typeof child.layer === 'function') {
+                        var layer = child.layer()
+                        
+                        if (layer) {
+                            var layerName = layer.name || "Unknown"
+                            var layerType = layer.type
+                            
+                            console.log("[Render Sync] Child", i, "- Layer:", layerName, "Type:", layerType)
+                            
+                            // Check if it's a vector layer (type === 0)
+                            if (layerType === 0) {
+                                layers.push(layer)
+                                console.log("[Render Sync] ✓ Added vector layer:", layerName)
+                                displayToast("✓ Found: " + layerName)
+                            } else {
+                                console.log("[Render Sync] ✗ Skipping non-vector layer:", layerName, "(type:", layerType, ")")
+                            }
+                        } else {
+                            console.log("[Render Sync] Child", i, "- layer() returned null")
+                        }
+                    } else if (child.name) {
+                        // It might be a group node
+                        console.log("[Render Sync] Child", i, "is a group:", child.name)
+                    } else {
+                        console.log("[Render Sync] Child", i, "- no layer() method")
+                    }
+                } catch (e) {
+                    console.log("[Render Sync] Error processing child", i, ":", e)
+                }
+            }
+            
+            // Report results
+            if (layers.length > 0) {
+                var layerNames = []
+                for (var j = 0; j < layers.length; j++) {
+                    layerNames.push(layers[j].name || "Unknown")
+                }
+                console.log("[Render Sync] ✅ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
+                displayToast("✅ Found " + layers.length + " vector layer(s)!", "success")
+            } else {
+                console.log("[Render Sync] ⚠️ No vector layers found")
+                displayToast("⚠️ No vector layers found", "warning")
+            }
+            
+        } catch (e) {
+            console.log("[Render Sync] EXCEPTION:", e)
+            console.log("[Render Sync] Stack:", e.stack)
+            displayToast("❌ ERROR: " + e.toString(), "error")
+        }
+        
+        return layers
+    }
+/**
  * QField Render Sync Plugin
  * ==========================
  * 
@@ -60,17 +171,17 @@ Item {
             console.log("[Render Sync] qgis object exists")
             if (qgis.project) {
                 qfProject = qgis.project
-                console.log("[Render Sync] âœ“ Got project from qgis.project")
-                displayToast("âœ“ Project accessed via qgis.project")
+                console.log("[Render Sync] ✓ Got project from qgis.project")
+                displayToast("✓ Project accessed via qgis.project")
             }
         }
         if (!qfProject && iface && iface.project) {
             qfProject = iface.project
-            console.log("[Render Sync] âœ“ Got project from iface.project")
-            displayToast("âœ“ Project accessed via iface.project")
+            console.log("[Render Sync] ✓ Got project from iface.project")
+            displayToast("✓ Project accessed via iface.project")
         }
         if (!qfProject) {
-            console.log("[Render Sync] âš ï¸ Could not get project reference at startup")
+            console.log("[Render Sync] ⚠️ Could not get project reference at startup")
         }
         
         // Add button to QField toolbar
@@ -169,28 +280,28 @@ Item {
                         validateConfiguration()
                         
                         if (configValid) {
-                            console.log("[Render Sync] âœ“ Configuration loaded successfully from API")
-                            displayToast("âœ“ Configuration loaded", "success")
+                            console.log("[Render Sync] ✓ Configuration loaded successfully from API")
+                            displayToast("✓ Configuration loaded", "success")
                         } else {
-                            console.log("[Render Sync] âœ— Configuration incomplete: " + configErrors.join(", "))
+                            console.log("[Render Sync] ✗ Configuration incomplete: " + configErrors.join(", "))
                             displayToast("Configuration incomplete: " + configErrors.join(", "), "warning")
                         }
                     } catch (e) {
-                        console.log("[Render Sync] âœ— Error parsing API response: " + e)
+                        console.log("[Render Sync] ✗ Error parsing API response: " + e)
                         displayToast("Error parsing API response", "error")
                         configValid = false
                     }
                 } else if (xhr.status === 401 || xhr.status === 403) {
-                    console.log("[Render Sync] âœ— Invalid token (status " + xhr.status + ")")
+                    console.log("[Render Sync] ✗ Invalid token (status " + xhr.status + ")")
                     displayToast("Invalid token. Please check and try again.", "error")
                     configValid = false
                     // Don't clear token automatically - let user try again
                 } else if (xhr.status === 0) {
-                    console.log("[Render Sync] âœ— Network error or CORS issue")
+                    console.log("[Render Sync] ✗ Network error or CORS issue")
                     displayToast("Cannot connect to API. Check network or API endpoint.", "error")
                     configValid = false
                 } else {
-                    console.log("[Render Sync] âœ— API error: " + xhr.status + " - " + xhr.responseText)
+                    console.log("[Render Sync] ✗ API error: " + xhr.status + " - " + xhr.responseText)
                     displayToast("API error: " + xhr.status, "error")
                     configValid = false
                 }
@@ -493,119 +604,6 @@ Item {
         return iface.activeLayer()
     }
     
-
-    /**
-     * Get all vector layers - V2 using layerTreeRoot()
-     * This is the correct QField API approach
-     */
-    function getVectorLayersV2() {
-        console.log("[Render Sync] ========== GET VECTOR LAYERS V2 ==========")
-        displayToast("ðŸ” Detecting layers...")
-        
-        var layers = []
-        
-        try {
-            // Check if qgisProject is available
-            if (typeof qgisProject === 'undefined' || !qgisProject) {
-                console.log("[Render Sync] ERROR: qgisProject not available")
-                displayToast("âŒ qgisProject not available", "error")
-                return []
-            }
-            
-            displayToast("âœ“ qgisProject exists")
-            console.log("[Render Sync] âœ“ qgisProject exists")
-            
-            // Use layerTreeRoot() - this is the correct QField API
-            if (typeof qgisProject.layerTreeRoot !== 'function') {
-                console.log("[Render Sync] ERROR: layerTreeRoot() not available")
-                displayToast("âŒ layerTreeRoot() not available", "error")
-                return []
-            }
-            
-            displayToast("âœ“ layerTreeRoot() exists")
-            console.log("[Render Sync] âœ“ layerTreeRoot() exists")
-            
-            var root = qgisProject.layerTreeRoot()
-            if (!root) {
-                console.log("[Render Sync] ERROR: layerTreeRoot() returned null")
-                displayToast("âŒ layerTreeRoot() returned null", "error")
-                return []
-            }
-            
-            displayToast("âœ“ Got layerTreeRoot")
-            console.log("[Render Sync] âœ“ Got layerTreeRoot")
-            
-            // Get children (layer nodes)
-            if (typeof root.children !== 'function') {
-                console.log("[Render Sync] ERROR: root.children() not available")
-                displayToast("âŒ root.children() not available", "error")
-                return []
-            }
-            
-            var children = root.children()
-            console.log("[Render Sync] layerTreeRoot has", children.length, "children")
-            displayToast("Found " + children.length + " layer nodes")
-            
-            // Process each child
-            for (var i = 0; i < children.length; i++) {
-                var child = children[i]
-                console.log("[Render Sync] Processing child", i, ":", child)
-                
-                try {
-                    // Get the layer from the tree node
-                    if (typeof child.layer === 'function') {
-                        var layer = child.layer()
-                        
-                        if (layer) {
-                            var layerName = layer.name || "Unknown"
-                            var layerType = layer.type
-                            
-                            console.log("[Render Sync] Child", i, "- Layer:", layerName, "Type:", layerType)
-                            
-                            // Check if it's a vector layer (type === 0)
-                            if (layerType === 0) {
-                                layers.push(layer)
-                                console.log("[Render Sync] âœ“ Added vector layer:", layerName)
-                                displayToast("âœ“ Found: " + layerName)
-                            } else {
-                                console.log("[Render Sync] âœ— Skipping non-vector layer:", layerName, "(type:", layerType, ")")
-                            }
-                        } else {
-                            console.log("[Render Sync] Child", i, "- layer() returned null")
-                        }
-                    } else if (child.name) {
-                        // It might be a group node
-                        console.log("[Render Sync] Child", i, "is a group:", child.name)
-                    } else {
-                        console.log("[Render Sync] Child", i, "- no layer() method")
-                    }
-                } catch (e) {
-                    console.log("[Render Sync] Error processing child", i, ":", e)
-                }
-            }
-            
-            // Report results
-            if (layers.length > 0) {
-                var layerNames = []
-                for (var j = 0; j < layers.length; j++) {
-                    layerNames.push(layers[j].name || "Unknown")
-                }
-                console.log("[Render Sync] âœ… SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
-                displayToast("âœ… Found " + layers.length + " vector layer(s)!", "success")
-            } else {
-                console.log("[Render Sync] âš ï¸ No vector layers found")
-                displayToast("âš ï¸ No vector layers found", "warning")
-            }
-            
-        } catch (e) {
-            console.log("[Render Sync] EXCEPTION:", e)
-            console.log("[Render Sync] Stack:", e.stack)
-            displayToast("âŒ ERROR: " + e.toString(), "error")
-        }
-        
-        return layers
-    }
-
     /**
      * Get all vector layers with debug information
      */
@@ -621,7 +619,7 @@ Item {
                 return { layers: [], debugInfo: debugInfo }
             }
             
-            debugInfo += "âœ“ qgisProject exists\n"
+            debugInfo += "✓ qgisProject exists\n"
             
             // Get all properties
             debugInfo += "\n=== qgisProject Properties ===\n"
@@ -647,24 +645,24 @@ Item {
             // Try mapLayersByName
             debugInfo += "\n=== Trying mapLayersByName() ===\n"
             if (typeof qgisProject.mapLayersByName === 'function') {
-                debugInfo += "âœ“ mapLayersByName exists\n"
+                debugInfo += "✓ mapLayersByName exists\n"
                 // We need a layer name to test this
             } else {
-                debugInfo += "âœ— mapLayersByName not available\n"
+                debugInfo += "✗ mapLayersByName not available\n"
             }
             
             // Try layerTreeRoot
             debugInfo += "\n=== Trying layerTreeRoot() ===\n"
             if (typeof qgisProject.layerTreeRoot === 'function') {
-                debugInfo += "âœ“ layerTreeRoot exists\n"
+                debugInfo += "✓ layerTreeRoot exists\n"
                 try {
                     var root = qgisProject.layerTreeRoot()
                     if (root) {
-                        debugInfo += "âœ“ Got layerTreeRoot\n"
+                        debugInfo += "✓ Got layerTreeRoot\n"
                         
                         if (typeof root.children === 'function') {
                             var children = root.children()
-                            debugInfo += "âœ“ layerTreeRoot has " + children.length + " children\n"
+                            debugInfo += "✓ layerTreeRoot has " + children.length + " children\n"
                             
                             for (var i = 0; i < children.length; i++) {
                                 var child = children[i]
@@ -674,17 +672,17 @@ Item {
                                     var layer = child.layer()
                                     if (layer && layer.type === 0) {
                                         layers.push(layer)
-                                        debugInfo += "    âœ“ Added vector layer: " + layer.name + "\n"
+                                        debugInfo += "    ✓ Added vector layer: " + layer.name + "\n"
                                     }
                                 }
                             }
                         }
                     }
                 } catch (e) {
-                    debugInfo += "âœ— layerTreeRoot error: " + e.toString() + "\n"
+                    debugInfo += "✗ layerTreeRoot error: " + e.toString() + "\n"
                 }
             } else {
-                debugInfo += "âœ— layerTreeRoot not available\n"
+                debugInfo += "✗ layerTreeRoot not available\n"
             }
             
             debugInfo += "\n=== RESULT ===\n"
@@ -711,13 +709,13 @@ Item {
             // Check if qgisProject is available (QField's main project object)
             if (typeof qgisProject === 'undefined' || !qgisProject) {
                 console.log("[Render Sync] qgisProject is undefined or null")
-                displayToast("âŒ qgisProject is " + (typeof qgisProject === 'undefined' ? "undefined" : "null"))
+                displayToast("❌ qgisProject is " + (typeof qgisProject === 'undefined' ? "undefined" : "null"))
                 diagnosticMessages.push("qgisProject: " + (typeof qgisProject === 'undefined' ? "undefined" : "null"))
                 return []
             }
             
-            console.log("[Render Sync] âœ“ qgisProject exists")
-            displayToast("âœ“ qgisProject exists")
+            console.log("[Render Sync] ✓ qgisProject exists")
+            displayToast("✓ qgisProject exists")
             diagnosticMessages.push("qgisProject: exists")
             
             // Try multiple approaches to get layers
@@ -730,10 +728,10 @@ Item {
                 displayToast("mapLayers: " + (mapLayers === undefined ? "undefined" : mapLayers === null ? "null" : typeof mapLayers))
                 
                 if (mapLayers && mapLayers.length !== undefined) {
-                    displayToast("âœ“ mapLayers has length: " + mapLayers.length)
+                    displayToast("✓ mapLayers has length: " + mapLayers.length)
                     layerArray = mapLayers
                 } else if (mapLayers && typeof mapLayers.values === 'function') {
-                    displayToast("âœ“ mapLayers has values()")
+                    displayToast("✓ mapLayers has values()")
                     var values = mapLayers.values()
                     for (var i = 0; i < values.length; i++) {
                         layerArray.push(values[i])
@@ -775,7 +773,7 @@ Item {
             
             // Approach 3: Try mapLayersByName or other methods
             if (layerArray.length === 0) {
-                displayToast("âŒ All approaches failed to get layers")
+                displayToast("❌ All approaches failed to get layers")
                 console.log("[Render Sync] Cannot access layers from qgisProject")
                 
                 // Log all available properties/methods
@@ -814,12 +812,12 @@ Item {
                 
                 // Try mapLayersByName
                 if (typeof qgisProject.mapLayersByName === 'function') {
-                    displayToast("âœ“ Has mapLayersByName()")
+                    displayToast("✓ Has mapLayersByName()")
                 }
                 
                 // Try layerTreeRoot
                 if (qgisProject.layerTreeRoot) {
-                    displayToast("âœ“ Has layerTreeRoot")
+                    displayToast("✓ Has layerTreeRoot")
                     try {
                         var root = qgisProject.layerTreeRoot()
                         if (root && typeof root.children === 'function') {
@@ -873,21 +871,21 @@ Item {
                     var isVector = false
                     if (layerType === 0) {
                         isVector = true
-                        displayToast("âœ“ " + layerName + " is VECTOR (type=0)")
-                        console.log("[Render Sync] âœ“ Vector layer by type:", layerName)
+                        displayToast("✓ " + layerName + " is VECTOR (type=0)")
+                        console.log("[Render Sync] ✓ Vector layer by type:", layerName)
                     } else if (toStringResult && toStringResult.indexOf("QgsVectorLayer") >= 0) {
                         isVector = true
-                        displayToast("âœ“ " + layerName + " is VECTOR (toString)")
-                        console.log("[Render Sync] âœ“ Vector layer by toString:", layerName)
+                        displayToast("✓ " + layerName + " is VECTOR (toString)")
+                        console.log("[Render Sync] ✓ Vector layer by toString:", layerName)
                     } else {
-                        displayToast("âœ— " + layerName + " is NOT vector (type:" + layerType + ")")
+                        displayToast("✗ " + layerName + " is NOT vector (type:" + layerType + ")")
                     }
                     
                     if (isVector) {
                         layers.push(layer)
                         console.log("[Render Sync] Added vector layer:", layerName)
                     } else {
-                        console.log("[Render Sync] âœ— Skipping non-vector layer:", layerName, "type:", layerType)
+                        console.log("[Render Sync] ✗ Skipping non-vector layer:", layerName, "type:", layerType)
                     }
                 } else {
                     displayToast("Layer " + (i+1) + " is null/undefined")
@@ -904,15 +902,15 @@ Item {
                         layerNames.push("Error getting name")
                     }
                 }
-                displayToast("âœ… SUCCESS! Found " + layers.length + " vector layer(s): " + layerNames.join(", "))
-                console.log("[Render Sync] âœ“ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
+                displayToast("✅ SUCCESS! Found " + layers.length + " vector layer(s): " + layerNames.join(", "))
+                console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
             } else {
-                displayToast("âš ï¸ No vector layers found in " + layerArray.length + " total layers")
+                displayToast("⚠️ No vector layers found in " + layerArray.length + " total layers")
                 console.log("[Render Sync] No vector layers found in project")
             }
             
         } catch (e) {
-            displayToast("âŒ EXCEPTION: " + e.toString())
+            displayToast("❌ EXCEPTION: " + e.toString())
             console.log("[Render Sync] ERROR:", e)
             console.log("[Render Sync] Stack:", e.stack)
         }
@@ -1036,3 +1034,4 @@ Item {
     }
     
 }
+
