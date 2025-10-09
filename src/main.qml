@@ -27,9 +27,14 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.4.0"
+    property string pluginVersion: "2.5.0"
     
-    // Project reference - try multiple ways
+    // QField-specific references (correct way to access QField objects)
+    property var mainWindow: iface ? iface.mainWindow() : null
+    property var dashBoard: iface ? iface.findItemByObjectName('dashBoard') : null
+    property var mapCanvas: iface ? iface.findItemByObjectName('mapCanvas') : null
+    
+    // Project reference
     property var qfProject: null
     
     // Configuration loaded from API
@@ -492,39 +497,50 @@ Item {
     }
     
     /**
-     * Get all vector layers - DIRECT APPROACH using QgsProject
+     * Get all vector layers - QFIELD CORRECT WAY using mapCanvas
      */
     function getVectorLayers() {
-        console.log("[Render Sync] ========== GET VECTOR LAYERS (DIRECT) ==========")
+        console.log("[Render Sync] ========== GET VECTOR LAYERS (QFIELD API) ==========")
         
         var layers = []
         
-        // DIRECT APPROACH: Use QgsProject.instance() directly
-        displayToast("🔍 Trying direct QgsProject.instance()...", "info")
+        displayToast("🔍 Using QField API to get layers...", "info")
         
         try {
-            // Import QgsProject if not already available
-            var project = QgsProject.instance()
-            
-            if (!project) {
-                displayToast("❌ QgsProject.instance() returned null", "error")
-                console.log("[Render Sync] QgsProject.instance() returned null")
+            // Check if we have mapCanvas (QField way)
+            if (!mapCanvas) {
+                displayToast("❌ mapCanvas not available", "error")
+                console.log("[Render Sync] mapCanvas is null")
                 return []
             }
             
-            displayToast("✓ Got QgsProject.instance()", "success")
-            console.log("[Render Sync] ✓ Got QgsProject.instance()")
+            console.log("[Render Sync] ✓ mapCanvas exists")
+            displayToast("✓ Got mapCanvas", "success")
             
-            // Get all map layers
-            var mapLayers = project.mapLayers()
-            var layerCount = Object.keys(mapLayers).length
+            // Get mapSettings from mapCanvas
+            if (!mapCanvas.mapSettings) {
+                displayToast("❌ mapSettings not available", "error")
+                console.log("[Render Sync] mapSettings is null")
+                return []
+            }
             
-            displayToast("Project has " + layerCount + " total layers", "info")
-            console.log("[Render Sync] Project has", layerCount, "map layers")
+            console.log("[Render Sync] ✓ mapSettings exists")
+            
+            // Get layers from mapSettings
+            var mapLayers = mapCanvas.mapSettings.layers
+            
+            if (!mapLayers) {
+                displayToast("❌ No layers in mapSettings", "error")
+                console.log("[Render Sync] mapSettings.layers is null")
+                return []
+            }
+            
+            console.log("[Render Sync] mapSettings has", mapLayers.length, "layers")
+            displayToast("Found " + mapLayers.length + " total layers", "info")
             
             // Filter for vector layers
-            for (var layerId in mapLayers) {
-                var layer = mapLayers[layerId]
+            for (var i = 0; i < mapLayers.length; i++) {
+                var layer = mapLayers[i]
                 if (layer && layer.type() === 0) { // QgsMapLayer.VectorLayer = 0
                     console.log("[Render Sync] ✓ Found vector layer:", layer.name())
                     layers.push(layer)
@@ -533,19 +549,19 @@ Item {
             
             if (layers.length > 0) {
                 var layerNames = []
-                for (var i = 0; i < layers.length; i++) {
-                    layerNames.push(layers[i].name())
+                for (var j = 0; j < layers.length; j++) {
+                    layerNames.push(layers[j].name())
                 }
-                displayToast("✅ Found " + layers.length + " vector layer(s): " + layerNames.join(", "), "success")
-                console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "vector layers")
+                displayToast("✅ SUCCESS! Found " + layers.length + " vector layer(s)", "success")
+                console.log("[Render Sync] ✓ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
             } else {
-                displayToast("⚠️ No vector layers found (only raster/basemaps?)", "warning")
+                displayToast("⚠️ No vector layers (only raster/basemaps?)", "warning")
                 console.log("[Render Sync] No vector layers found")
             }
             
         } catch (e) {
             displayToast("❌ ERROR: " + e.toString(), "error")
-            console.log("[Render Sync] ERROR accessing QgsProject:", e)
+            console.log("[Render Sync] ERROR:", e)
             console.log("[Render Sync] Stack:", e.stack)
         }
         
