@@ -54,13 +54,17 @@ Item {
     property bool loggingEnabled: false
     
     Component.onCompleted: {
-        console.log("[Render Sync] Plugin loading...")
+        console.log("[PLUGIN_LOAD] ===== QField Render Sync Plugin Loading =====")
+        console.log("[PLUGIN_LOAD] Plugin version: " + pluginVersion)
+        console.log("[PLUGIN_LOAD] Current time: " + new Date().toISOString())
         
         // Initialize file logging
         initializeLogging()
         
         // Show visible startup message
         displayToast("Render Sync v" + pluginVersion + " loading...")
+        
+        console.log("[PLUGIN_LOAD] Logging initialized, proceeding with project setup")
         
         // Try to get project reference at startup
         console.log("[Render Sync] Attempting to get project reference...")
