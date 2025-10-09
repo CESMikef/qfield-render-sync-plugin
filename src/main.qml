@@ -27,10 +27,10 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.3.1"
+    property string pluginVersion: "2.3.2"
     
-    // Project reference
-    property var qfProject: iface ? iface.project : null
+    // Project reference - try multiple ways
+    property var qfProject: null
     
     // Configuration loaded from API
     property var config: ({})
@@ -51,6 +51,25 @@ Item {
         
         // Show visible startup message
         displayToast("Render Sync v" + pluginVersion + " loading...")
+        
+        // Try to get project reference at startup
+        console.log("[Render Sync] Attempting to get project reference...")
+        if (typeof qgis !== 'undefined') {
+            console.log("[Render Sync] qgis object exists")
+            if (qgis.project) {
+                qfProject = qgis.project
+                console.log("[Render Sync] ✓ Got project from qgis.project")
+                displayToast("✓ Project accessed via qgis.project")
+            }
+        }
+        if (!qfProject && iface && iface.project) {
+            qfProject = iface.project
+            console.log("[Render Sync] ✓ Got project from iface.project")
+            displayToast("✓ Project accessed via iface.project")
+        }
+        if (!qfProject) {
+            console.log("[Render Sync] ⚠️ Could not get project reference at startup")
+        }
         
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
@@ -506,6 +525,18 @@ Item {
         
         var layers = []
         var project = null
+        
+        // APPROACH 0: Try qgis.project (QField global object)
+        console.log("[Render Sync] Approach 0: qgis.project")
+        displayToast("Trying Approach 0: qgis.project", "info")
+        if (typeof qgis !== 'undefined' && qgis.project) {
+            console.log("[Render Sync] ✓ qgis.project exists")
+            project = qgis.project
+            displayToast("✓ Approach 0 SUCCESS!", "success")
+        } else {
+            console.log("[Render Sync] ✗ qgis.project not available")
+            displayToast("✗ Approach 0 failed", "warning")
+        }
         
         // APPROACH 1: Try iface.project (QGIS Desktop style)
         console.log("[Render Sync] Approach 1: iface.project")
