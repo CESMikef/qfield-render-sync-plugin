@@ -344,34 +344,6 @@ Item {
     }
     
     /**
-     * Get vector layers from project
-     */
-    function getVectorLayers() {
-        console.log("[Render Sync] Getting vector layers...")
-        var layers = []
-        
-        if (!qfProject) {
-            console.log("[Render Sync] No project loaded")
-            return layers
-        }
-        
-        var mapLayers = qfProject.mapLayers()
-        console.log("[Render Sync] Total map layers:", mapLayers.length)
-        
-        for (var i = 0; i < mapLayers.length; i++) {
-            var layer = mapLayers[i]
-            // Check if it's a vector layer
-            if (layer.type() === 0) {  // QgsMapLayer.VectorLayer = 0
-                console.log("[Render Sync] Found vector layer:", layer.name())
-                layers.push(layer)
-            }
-        }
-        
-        console.log("[Render Sync] Returning " + layers.length + " vector layers")
-        return layers
-    }
-    
-    /**
      * Sync photos (called from dialog)
      */
     function syncPhotos(pendingPhotos, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
@@ -504,20 +476,27 @@ Item {
      * Get all vector layers
      */
     function getVectorLayers() {
+        console.log("[Render Sync] getVectorLayers called")
+        
         if (!qfProject) {
+            console.log("[Render Sync] No project loaded")
             return []
         }
         
         var layers = []
         var mapLayers = qfProject.mapLayers()
+        console.log("[Render Sync] Project has", Object.keys(mapLayers).length, "map layers")
         
         for (var layerId in mapLayers) {
             var layer = mapLayers[layerId]
+            console.log("[Render Sync] Checking layer:", layer ? layer.name() : "null", "type:", layer ? layer.type() : "null")
             if (layer && layer.type() === QgsMapLayer.VectorLayer) {
+                console.log("[Render Sync] Adding vector layer:", layer.name())
                 layers.push(layer)
             }
         }
         
+        console.log("[Render Sync] Returning", layers.length, "vector layers")
         return layers
     }
 }
