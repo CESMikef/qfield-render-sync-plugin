@@ -31,6 +31,9 @@ Popup {
     
     onOpened: {
         console.log("[SyncDialog] Dialog opened")
+        if (plugin && plugin.displayToast) {
+            plugin.displayToast("Loading layers...")
+        }
         loadLayers()
         updatePendingCount()
     }
@@ -39,20 +42,40 @@ Popup {
         console.log("[SyncDialog] Loading layers...")
         layerComboBox.model.clear()
         
-        if (!plugin || !plugin.qfProject) {
-            console.log("[SyncDialog] No plugin or project")
+        if (!plugin) {
+            console.log("[SyncDialog] ERROR: No plugin reference")
             return
         }
         
-        var layers = plugin.getVectorLayers()
-        console.log("[SyncDialog] Found " + layers.length + " layers")
+        console.log("[SyncDialog] Plugin:", plugin)
+        console.log("[SyncDialog] Plugin.qfProject:", plugin.qfProject)
         
-        for (var i = 0; i < layers.length; i++) {
-            var layer = layers[i]
-            layerComboBox.model.append({
-                text: layer.name(),
-                layer: layer
-            })
+        try {
+            var layers = plugin.getVectorLayers()
+            console.log("[SyncDialog] Got " + layers.length + " vector layers")
+            
+            if (layers.length === 0) {
+                console.log("[SyncDialog] WARNING: No vector layers found in project")
+                layerComboBox.model.append({
+                    text: "No layers found",
+                    layer: null
+                })
+                return
+            }
+            
+            for (var i = 0; i < layers.length; i++) {
+                var layer = layers[i]
+                console.log("[SyncDialog] Adding layer:", layer.name())
+                layerComboBox.model.append({
+                    text: layer.name(),
+                    layer: layer
+                })
+            }
+            
+            console.log("[SyncDialog] Layer loading complete")
+        } catch (e) {
+            console.log("[SyncDialog] ERROR loading layers:", e)
+            console.log("[SyncDialog] Stack:", e.stack)
         }
     }
     
