@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.8.7"
+    property string pluginVersion: "2.8.8"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -137,13 +137,8 @@ Item {
             // For QField Desktop, users can redirect console output to a file
             logFilePath = "qfield_render_sync_debug.log"
             
-            // Check if custom log path is set in project
-            if (qfProject) {
-                var customPath = qfProject.customVariable("render_log_file")
-                if (customPath) {
-                    logFilePath = customPath
-                }
-            }
+            // Use default log path (customVariable not available in QField)
+            // logFilePath already set above
             
             // Initialize logger
             Logger.init(logFilePath)
@@ -198,10 +193,8 @@ Item {
         loadingConfig = true
         console.log("[Render Sync] Fetching configuration from API...")
         
-        // Get API base URL from project or use default
-        var apiBaseUrl = qfProject ? 
-                        (qfProject.customVariable("render_api_base_url") || "https://qfield-photo-sync-api.onrender.com") :
-                        "https://qfield-photo-sync-api.onrender.com"
+        // Get API base URL - use default (customVariable not available in QField)
+        var apiBaseUrl = "https://qfield-photo-sync-api.onrender.com"
         
         var xhr = new XMLHttpRequest()
         xhr.open("GET", apiBaseUrl + "/api/config?token=" + userToken, true)
