@@ -251,12 +251,30 @@ Popup {
                                 // Try both feature.id and feature.id() 
                                 var featureId = (typeof feature.id === 'function') ? feature.id() : feature.id
                                 
+                                // Resolve full path - photos are relative to project home path
+                                var fullPath = photoPath
+                                if (typeof qgisProject.homePath === 'function') {
+                                    var projectHome = qgisProject.homePath()
+                                    if (projectHome && photoPath.indexOf(projectHome) !== 0) {
+                                        fullPath = projectHome + "/" + photoPath
+                                    }
+                                } else if (typeof qgisProject.homePath === 'string') {
+                                    var projectHome = qgisProject.homePath
+                                    if (projectHome && photoPath.indexOf(projectHome) !== 0) {
+                                        fullPath = projectHome + "/" + photoPath
+                                    }
+                                }
+                                
                                 pendingPhotos.push({
                                     feature: feature,
                                     fid: featureId,
-                                    localPath: photoPath
+                                    localPath: fullPath
                                 })
-                                addDebugLog("  Found photo: " + photoPath.substring(0, 50))
+                                if (fullPath !== photoPath) {
+                                    addDebugLog("  Found photo: " + photoPath.substring(0, 40) + " -> " + fullPath.substring(0, 60))
+                                } else {
+                                    addDebugLog("  Found photo: " + photoPath.substring(0, 50))
+                                }
                             }
                         }
                     }
