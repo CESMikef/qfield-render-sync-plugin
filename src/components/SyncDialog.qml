@@ -5,7 +5,6 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
-import QtQuick.LocalStorage 2.12
 
 Popup {
     id: syncDialog
@@ -187,97 +186,25 @@ Popup {
         // Try to query the layer using SQL if it's a GeoPackage
         var photoField = config.photoField || "photo"
         
-        // Check if layer source contains .gpkg (GeoPackage)
-        if (selectedLayer.source && selectedLayer.source.indexOf(".gpkg") >= 0) {
-            addDebugLog("Layer is GeoPackage, attempting SQL query...")
-            queryGeoPackageForPhotos(selectedLayer, photoField)
-        } else {
-            addDebugLog("Layer is not GeoPackage, cannot query features")
-            addDebugLog("Manual sync required - click 'Start Sync' to process all features")
-            pendingPhotos = []
-            totalPhotos = 0
-        }
-    }
-    
-    function queryGeoPackageForPhotos(layer, photoField) {
-        // Extract GeoPackage path and table name from layer source
-        var source = layer.source
-        addDebugLog("Parsing source: " + source)
+        // For now, we cannot query GeoPackage from QML
+        // Show message that user should click "Start Sync" to process all features
+        addDebugLog("Feature counting not available in QField QML")
+        addDebugLog("Click 'Start Sync' to sync all photos in layer")
         
-        // Source format: /path/to/file.gpkg|layername=table_name
-        var gpkgPath = ""
-        var tableName = layer.name
-        
-        if (source.indexOf("|") >= 0) {
-            var parts = source.split("|")
-            gpkgPath = parts[0]
-            
-            // Extract table name from layername=xxx
-            for (var i = 1; i < parts.length; i++) {
-                if (parts[i].indexOf("layername=") === 0) {
-                    tableName = parts[i].substring(10)
-                }
-            }
-        } else {
-            gpkgPath = source
-        }
-        
-        addDebugLog("GeoPackage path: " + gpkgPath)
-        addDebugLog("Table name: " + tableName)
-        addDebugLog("Photo field: " + photoField)
-        
-        // Use LocalStorage.openDatabaseSync to query the GeoPackage
-        try {
-            var db = LocalStorage.openDatabaseSync(gpkgPath, "", "GeoPackage", 1000000)
-            addDebugLog("Database opened successfully")
-            
-            db.transaction(function(tx) {
-                // Query for features with non-empty photo field
-                var query = "SELECT fid, " + photoField + " FROM " + tableName + 
-                           " WHERE " + photoField + " IS NOT NULL AND " + photoField + " != ''"
-                
-                addDebugLog("Executing query: " + query)
-                
-                var result = tx.executeSql(query)
-                addDebugLog("Query returned " + result.rows.length + " rows")
-                
-                pendingPhotos = []
-                
-                for (var i = 0; i < result.rows.length; i++) {
-                    var row = result.rows.item(i)
-                    var photoPath = row[photoField]
-                    
-                    addDebugLog("Row " + i + ": fid=" + row.fid + ", photo=" + photoPath)
-                    
-                    // Check if it's a local path (not already synced URL)
-                    if (photoPath && !/^https?:\/\//i.test(photoPath)) {
-                        pendingPhotos.push({
-                            fid: row.fid,
-                            localPath: photoPath
-                        })
-                        addDebugLog("  -> Added to pending list")
-                    } else {
-                        addDebugLog("  -> Skipped (already synced)")
-                    }
-                }
-                
-                totalPhotos = pendingPhotos.length
-                addDebugLog("Total pending photos: " + totalPhotos)
-            })
-        } catch (e) {
-            addDebugLog("ERROR querying database: " + e.toString())
-            console.log("[SyncDialog] Database error:", e)
-            pendingPhotos = []
-            totalPhotos = 0
-        }
+        pendingPhotos = []
+        totalPhotos = 0
     }
     
     function startSync() {
         console.log("[SyncDialog] Starting sync...")
-        if (!selectedLayer || totalPhotos === 0) {
-            console.log("[SyncDialog] No photos to sync")
+        if (!selectedLayer) {
+            console.log("[SyncDialog] No layer selected")
+            addDebugLog("ERROR: No layer selected")
             return
         }
+        
+        addDebugLog("Starting sync for layer: " + selectedLayer.name)
+        addDebugLog("This will sync ALL features with photos in the layer")
         
         syncing = true
         plugin.syncInProgress = true
