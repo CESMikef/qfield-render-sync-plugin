@@ -28,15 +28,12 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.9.1"
+    property string pluginVersion: "3.0.0"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
     property var dashBoard: iface ? iface.findItemByObjectName('dashBoard') : null
     property var mapCanvas: iface ? iface.findItemByObjectName('mapCanvas') : null
-    
-    // Project reference
-    property var qfProject: null
     
     // Configuration loaded from API
     property var config: ({})
@@ -69,34 +66,14 @@ Item {
         
         console.log("Proceeding with project setup...")
         
-        // Delay project reference to allow project to fully load
-        Qt.callLater(function() {
-            // Try to get project reference after a delay
-            console.log("[Render Sync] Attempting to get project reference (delayed)...")
-            if (typeof qgis !== 'undefined') {
-                console.log("[Render Sync] qgis object exists")
-                if (qgis.project) {
-                    qfProject = qgis.project
-                    console.log("[Render Sync] Got project from qgis.project")
-                    displayToast("Project accessed")
-                }
-            }
-            if (!qfProject && iface && iface.project) {
-                qfProject = iface.project
-                console.log("[Render Sync] Got project from iface.project")
-                displayToast("Project accessed")
-            }
-            if (!qfProject && typeof qgisProject !== 'undefined' && qgisProject) {
-                qfProject = qgisProject
-                console.log("[Render Sync] Got project from qgisProject global")
-                displayToast("Project accessed")
-            }
-            if (!qfProject) {
-                console.log("[Render Sync] Could not get project reference at startup")
-            } else {
-                console.log("[Render Sync] Project reference set successfully")
-            }
-        })
+        // Check if qgisProject is available (QField's global project object)
+        if (typeof qgisProject !== 'undefined' && qgisProject) {
+            console.log("[Render Sync] ✓ qgisProject is available")
+            displayToast("✓ Project ready")
+        } else {
+            console.log("[Render Sync] ⚠️ qgisProject not available at startup")
+            displayToast("⚠️ Project not ready", "warning")
+        }
         
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
@@ -566,158 +543,58 @@ Item {
     
 
     /**
-     * Get all vector layers - V2 using layerTreeRoot()
-     * This is the correct QField API approach
+     * Get all vector layers - Using correct QField API
+     * Based on QField documentation at docs.qfield.org
      */
     function getVectorLayersV2() {
-        console.log("[Render Sync] ========== GET VECTOR LAYERS V2 ==========")
+        console.log("[Render Sync] ========== GET VECTOR LAYERS (QField API) ==========")
         console.log("[Render Sync] Plugin version:", pluginVersion)
         displayToast("Detecting layers...")
         
         var layers = []
-        var projectRef = null
         
         try {
-            // Try multiple ways to get project reference
-            console.log("[Render Sync] Attempting to get project reference...")
-            console.log("[Render Sync] qfProject is:", qfProject ? "SET" : "NULL")
-            console.log("[Render Sync] typeof qgis:", typeof qgis)
-            console.log("[Render Sync] typeof qgisProject:", typeof qgisProject)
-            console.log("[Render Sync] iface exists:", !!iface)
-            
-            // Try qfProject first
-            if (qfProject) {
-                projectRef = qfProject
-                console.log("[Render Sync] Using qfProject")
-                displayToast("Using qfProject")
-            }
-            // Try qgis.project
-            else if (typeof qgis !== 'undefined' && qgis.project) {
-                projectRef = qgis.project
-                qfProject = projectRef
-                console.log("[Render Sync] Got project from qgis.project")
-                displayToast("Got qgis.project")
-            }
-            // Try iface.project
-            else if (iface && iface.project) {
-                projectRef = iface.project
-                qfProject = projectRef
-                console.log("[Render Sync] Got project from iface.project")
-                displayToast("Got iface.project")
-            }
-            // Try global qgisProject
-            else if (typeof qgisProject !== 'undefined' && qgisProject) {
-                projectRef = qgisProject
-                qfProject = projectRef
-                console.log("[Render Sync] Got project from qgisProject global")
-                displayToast("Got qgisProject")
-            }
-            
-            if (!projectRef) {
-                console.log("[Render Sync] ERROR: Could not get project reference from any source")
-                displayToast("ERROR: No project reference", "error")
+            // Use qgisProject - the global project object in QField
+            if (typeof qgisProject === 'undefined' || !qgisProject) {
+                console.log("[Render Sync] ERROR: qgisProject is not available")
+                displayToast("ERROR: qgisProject not available", "error")
                 return []
             }
             
-            console.log("[Render Sync] Project reference obtained")
-            displayToast("Project ref obtained")
+            console.log("[Render Sync] qgisProject is available")
+            displayToast("qgisProject available")
             
-            // Try mapLayers() method - simpler approach
-            if (typeof projectRef.mapLayers === 'function') {
-                console.log("[Render Sync] Trying mapLayers() method...")
-                displayToast("Trying mapLayers()...")
+            // Get mapLayers - this is a QMap<QString, QgsMapLayer*> in QField
+            var mapLayers = qgisProject.mapLayers()
+            console.log("[Render Sync] mapLayers type:", typeof mapLayers)
+            console.log("[Render Sync] mapLayers:", mapLayers)
+            
+            if (!mapLayers) {
+                console.log("[Render Sync] ERROR: mapLayers() returned null")
+                displayToast("ERROR: mapLayers null", "error")
+                return []
+            }
+            
+            displayToast("Got mapLayers")
+            
+            // Iterate through the map
+            // In QML, QMap is exposed as a JS object with keys
+            for (var layerId in mapLayers) {
+                var layer = mapLayers[layerId]
+                console.log("[Render Sync] Checking layer:", layerId, "Type:", typeof layer)
                 
-                var mapLayers = projectRef.mapLayers()
-                console.log("[Render Sync] mapLayers() returned:", typeof mapLayers)
-                
-                if (mapLayers) {
-                    // Try to iterate
-                    var layerIds = Object.keys(mapLayers)
-                    console.log("[Render Sync] Found", layerIds.length, "layer IDs")
-                    displayToast("Found " + layerIds.length + " layers via mapLayers")
+                if (layer) {
+                    console.log("[Render Sync] Layer name:", layer.name)
+                    console.log("[Render Sync] Layer type:", layer.type)
                     
-                    for (var i = 0; i < layerIds.length; i++) {
-                        var layer = mapLayers[layerIds[i]]
-                        if (layer && layer.type === 0) { // Vector layer
-                            layers.push(layer)
-                            console.log("[Render Sync] Added vector layer:", layer.name)
-                            displayToast("Added: " + layer.name)
-                        }
-                    }
-                    
-                    if (layers.length > 0) {
-                        console.log("[Render Sync] SUCCESS - Found", layers.length, "vector layers via mapLayers()")
-                        displayToast("SUCCESS: " + layers.length + " layers!", "success")
-                        return layers
-                    }
-                }
-            }
-            
-            // Fallback: Try layerTreeRoot()
-            console.log("[Render Sync] Trying layerTreeRoot() fallback...")
-            displayToast("Trying layerTreeRoot()...")
-            
-            if (typeof projectRef.layerTreeRoot !== 'function') {
-                console.log("[Render Sync] ERROR: layerTreeRoot() not available")
-                displayToast("ERROR: No layerTreeRoot()", "error")
-                return []
-            }
-            
-            var root = projectRef.layerTreeRoot()
-            if (!root) {
-                console.log("[Render Sync] ERROR: layerTreeRoot() returned null")
-                displayToast("ERROR: layerTreeRoot null", "error")
-                return []
-            }
-            
-            console.log("[Render Sync] Got layerTreeRoot")
-            displayToast("Got layerTreeRoot")
-            
-            if (typeof root.children !== 'function') {
-                console.log("[Render Sync] ERROR: root.children() not available")
-                displayToast("ERROR: No children()", "error")
-                return []
-            }
-            
-            var children = root.children()
-            console.log("[Render Sync] layerTreeRoot has", children.length, "children")
-            displayToast("Found " + children.length + " nodes")
-            
-            // Process each child
-            for (var i = 0; i < children.length; i++) {
-                var child = children[i]
-                console.log("[Render Sync] Processing child", i, ":", child)
-                
-                try {
-                    // Get the layer from the tree node
-                    if (typeof child.layer === 'function') {
-                        var layer = child.layer()
-                        
-                        if (layer) {
-                            var layerName = layer.name || "Unknown"
-                            var layerType = layer.type
-                            
-                            console.log("[Render Sync] Child", i, "- Layer:", layerName, "Type:", layerType)
-                            
-                            // Check if it's a vector layer (type === 0)
-                            if (layerType === 0) {
-                                layers.push(layer)
-                                console.log("[Render Sync] Added vector layer:", layerName)
-                                displayToast("Found: " + layerName)
-                            } else {
-                                console.log("[Render Sync] Skipping non-vector layer:", layerName, "(type:", layerType, ")")
-                            }
-                        } else {
-                            console.log("[Render Sync] Child", i, "- layer() returned null")
-                        }
-                    } else if (child.name) {
-                        // It might be a group node
-                        console.log("[Render Sync] Child", i, "is a group:", child.name)
+                    // type === 0 means Vector layer in QGIS
+                    if (layer.type === 0) {
+                        layers.push(layer)
+                        console.log("[Render Sync] ✓ Added vector layer:", layer.name)
+                        displayToast("Found: " + layer.name)
                     } else {
-                        console.log("[Render Sync] Child", i, "- no layer() method")
+                        console.log("[Render Sync] ✗ Skipping non-vector layer:", layer.name, "(type:", layer.type, ")")
                     }
-                } catch (e) {
-                    console.log("[Render Sync] Error processing child", i, ":", e)
                 }
             }
             
@@ -727,10 +604,10 @@ Item {
                 for (var j = 0; j < layers.length; j++) {
                     layerNames.push(layers[j].name || "Unknown")
                 }
-                console.log("[Render Sync] SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
-                displayToast("Found " + layers.length + " vector layer(s)!", "success")
+                console.log("[Render Sync] ✅ SUCCESS - Found", layers.length, "vector layers:", layerNames.join(", "))
+                displayToast("SUCCESS: " + layers.length + " layer(s)!", "success")
             } else {
-                console.log("[Render Sync] No vector layers found")
+                console.log("[Render Sync] ⚠️ No vector layers found")
                 displayToast("No vector layers found", "warning")
             }
             
