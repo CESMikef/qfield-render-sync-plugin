@@ -215,24 +215,29 @@ function uploadPhoto(localPath, remoteUrl, username, password, onProgress, onCom
  * @param {function} onComplete - Completion callback(success, photoUrl, error)
  */
 function uploadPhotoWithCheck(localPath, globalId, webdavUrl, username, password, onProgress, onComplete) {
-    // Generate unique filename based on the original filename to maintain consistency
-    var extension = getFileExtension(localPath);
-    
-    // Extract original filename from path
-    var pathParts = localPath.replace(/\\/g, '/').split('/');
-    var originalFilename = pathParts[pathParts.length - 1];
-    
-    // Use original filename if it exists, otherwise generate one
-    var filename = originalFilename || generatePhotoFilename(globalId, extension);
-    var remoteUrl = webdavUrl.replace(/\/$/, '') + '/' + filename;
-    
-    // console.log('[WebDAV] Starting photo upload: ' + filename);
-    // console.log('[WebDAV] Local path: ' + localPath);
-    // console.log('[WebDAV] Remote URL: ' + remoteUrl);
-    
-    // SKIP duplicate check in QField - just upload directly
-    // This avoids file reading issues in QML
-    if (onProgress) onProgress(0, 'Preparing upload...');
+    try {
+        if (onProgress) onProgress(0, 'Preparing upload...');
+        
+        // Generate unique filename based on the original filename to maintain consistency
+        if (onProgress) onProgress(1, 'Getting file extension...');
+        var extension = getFileExtension(localPath);
+        
+        if (onProgress) onProgress(2, 'Extracting filename...');
+        // Extract original filename from path
+        var pathParts = String(localPath).replace(/\\/g, '/').split('/');
+        var originalFilename = pathParts[pathParts.length - 1];
+        
+        if (onProgress) onProgress(3, 'Generating filename...');
+        // Use original filename if it exists, otherwise generate one
+        var filename = originalFilename || generatePhotoFilename(globalId, extension);
+        
+        if (onProgress) onProgress(4, 'Building remote URL...');
+        var remoteUrl = String(webdavUrl).replace(/\/$/, '') + '/' + filename;
+        
+        if (onProgress) onProgress(5, 'Starting upload...');
+        
+        // SKIP duplicate check in QField - just upload directly
+        // This avoids file reading issues in QML
     
     // Try to upload using file:// URL directly
     uploadPhotoDirectly(
@@ -254,6 +259,11 @@ function uploadPhotoWithCheck(localPath, globalId, webdavUrl, username, password
             }
         }
     );
+    
+    } catch (e) {
+        if (onProgress) onProgress(99, 'EXCEPTION in uploadPhotoWithCheck: ' + e.toString());
+        onComplete(false, null, 'Exception: ' + e.toString());
+    }
 }
 
 /**
