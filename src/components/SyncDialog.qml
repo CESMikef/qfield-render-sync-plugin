@@ -324,9 +324,12 @@ Popup {
         syncing = true
         plugin.syncInProgress = true
         
+        addDebugLog("Plugin reference: " + (plugin ? "valid" : "NULL"))
+        addDebugLog("plugin.syncPhotos type: " + typeof plugin.syncPhotos)
         addDebugLog("Calling plugin.syncPhotos()...")
         
-        plugin.syncPhotos(
+        try {
+            plugin.syncPhotos(
             pendingPhotos,
             selectedLayer,
             function(photoIndex, total, percent, status) {
@@ -355,6 +358,12 @@ Popup {
                 resultDialog.open()
             }
         )
+        } catch (e) {
+            addDebugLog("EXCEPTION calling plugin.syncPhotos: " + e.toString())
+            console.log("[SyncDialog] EXCEPTION:", e)
+            syncing = false
+            plugin.syncInProgress = false
+        }
     }
     
     ColumnLayout {
