@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.4.1"
+    property string pluginVersion: "3.4.2"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -416,7 +416,38 @@ Item {
      * Sync photos (called from dialog)
      */
     function syncPhotos(pendingPhotos, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
-        console.log("[Render Sync] Starting sync of " + pendingPhotos.length + " photos")
+        console.log("[Render Sync] ========== SYNC PHOTOS CALLED ==========")
+        console.log("[Render Sync] Pending photos count: " + pendingPhotos.length)
+        console.log("[Render Sync] Config valid: " + configValid)
+        console.log("[Render Sync] Layer: " + (layer ? layer.name : "null"))
+        
+        if (!configValid) {
+            console.log("[Render Sync] ERROR: Config not valid!")
+            if (onAllComplete) {
+                onAllComplete({
+                    total: 0,
+                    succeeded: 0,
+                    failed: 0,
+                    errors: ["Configuration not loaded"]
+                })
+            }
+            return
+        }
+        
+        if (pendingPhotos.length === 0) {
+            console.log("[Render Sync] No photos to sync")
+            if (onAllComplete) {
+                onAllComplete({
+                    total: 0,
+                    succeeded: 0,
+                    failed: 0,
+                    errors: []
+                })
+            }
+            return
+        }
+        
+        console.log("[Render Sync] Calling SyncEngine.syncAllPhotos...")
         
         // Call SyncEngine with module references
         SyncEngine.syncAllPhotos(
@@ -429,6 +460,8 @@ Item {
             onPhotoComplete,
             onAllComplete
         )
+        
+        console.log("[Render Sync] SyncEngine.syncAllPhotos called")
     }
     
     // Toolbar Button
