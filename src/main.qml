@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.8.8"
+    property string pluginVersion: "2.8.9"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -577,73 +577,99 @@ Item {
             if (qfProject) {
                 projectRef = qfProject
                 console.log("[Render Sync] Using qfProject")
+                displayToast("Using qfProject")
             }
             // Try qgis.project
             else if (typeof qgis !== 'undefined' && qgis.project) {
                 projectRef = qgis.project
                 qfProject = projectRef
                 console.log("[Render Sync] Got project from qgis.project")
+                displayToast("Got qgis.project")
             }
             // Try iface.project
             else if (iface && iface.project) {
                 projectRef = iface.project
                 qfProject = projectRef
                 console.log("[Render Sync] Got project from iface.project")
+                displayToast("Got iface.project")
             }
             // Try global qgisProject
             else if (typeof qgisProject !== 'undefined' && qgisProject) {
                 projectRef = qgisProject
                 qfProject = projectRef
                 console.log("[Render Sync] Got project from qgisProject global")
+                displayToast("Got qgisProject")
             }
             
             if (!projectRef) {
                 console.log("[Render Sync] ERROR: Could not get project reference from any source")
-                displayToast("ERROR: No project reference available", "error")
+                displayToast("ERROR: No project reference", "error")
                 return []
             }
             
-            console.log("[Render Sync] Project reference obtained successfully")
-            console.log("[Render Sync] Project object type:", typeof projectRef)
+            console.log("[Render Sync] Project reference obtained")
+            displayToast("Project ref obtained")
             
-            // Log available methods on project
-            var projectMethods = []
-            for (var prop in projectRef) {
-                if (typeof projectRef[prop] === 'function') {
-                    projectMethods.push(prop)
+            // Try mapLayers() method - simpler approach
+            if (typeof projectRef.mapLayers === 'function') {
+                console.log("[Render Sync] Trying mapLayers() method...")
+                displayToast("Trying mapLayers()...")
+                
+                var mapLayers = projectRef.mapLayers()
+                console.log("[Render Sync] mapLayers() returned:", typeof mapLayers)
+                
+                if (mapLayers) {
+                    // Try to iterate
+                    var layerIds = Object.keys(mapLayers)
+                    console.log("[Render Sync] Found", layerIds.length, "layer IDs")
+                    displayToast("Found " + layerIds.length + " layers via mapLayers")
+                    
+                    for (var i = 0; i < layerIds.length; i++) {
+                        var layer = mapLayers[layerIds[i]]
+                        if (layer && layer.type === 0) { // Vector layer
+                            layers.push(layer)
+                            console.log("[Render Sync] Added vector layer:", layer.name)
+                            displayToast("Added: " + layer.name)
+                        }
+                    }
+                    
+                    if (layers.length > 0) {
+                        console.log("[Render Sync] SUCCESS - Found", layers.length, "vector layers via mapLayers()")
+                        displayToast("SUCCESS: " + layers.length + " layers!", "success")
+                        return layers
+                    }
                 }
             }
-            console.log("[Render Sync] Project methods available:", projectMethods.join(", "))
             
-            // Use layerTreeRoot() - this is the correct QField API
+            // Fallback: Try layerTreeRoot()
+            console.log("[Render Sync] Trying layerTreeRoot() fallback...")
+            displayToast("Trying layerTreeRoot()...")
+            
             if (typeof projectRef.layerTreeRoot !== 'function') {
-                console.log("[Render Sync] ERROR: layerTreeRoot() not available on project")
-                displayToast("ERROR: layerTreeRoot() not available", "error")
+                console.log("[Render Sync] ERROR: layerTreeRoot() not available")
+                displayToast("ERROR: No layerTreeRoot()", "error")
                 return []
             }
             
-            console.log("[Render Sync] Calling layerTreeRoot()...")
             var root = projectRef.layerTreeRoot()
-            
             if (!root) {
                 console.log("[Render Sync] ERROR: layerTreeRoot() returned null")
-                displayToast("ERROR: layerTreeRoot() returned null", "error")
+                displayToast("ERROR: layerTreeRoot null", "error")
                 return []
             }
             
-            console.log("[Render Sync] Got layerTreeRoot successfully")
-            console.log("[Render Sync] Root object type:", typeof root)
+            console.log("[Render Sync] Got layerTreeRoot")
+            displayToast("Got layerTreeRoot")
             
-            // Get children (layer nodes)
             if (typeof root.children !== 'function') {
                 console.log("[Render Sync] ERROR: root.children() not available")
-                displayToast("ERROR: root.children() not available", "error")
+                displayToast("ERROR: No children()", "error")
                 return []
             }
             
             var children = root.children()
             console.log("[Render Sync] layerTreeRoot has", children.length, "children")
-            displayToast("Found " + children.length + " layer nodes")
+            displayToast("Found " + children.length + " nodes")
             
             // Process each child
             for (var i = 0; i < children.length; i++) {
