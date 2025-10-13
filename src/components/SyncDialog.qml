@@ -181,15 +181,24 @@ Popup {
         console.log("[SyncDialog] Photo field:", config.photoField || "photo")
         
         addDebugLog("Layer: " + selectedLayer.name)
-        addDebugLog("Source: " + selectedLayer.source)
+        addDebugLog("Checking layer properties...")
         
-        // Try to query the layer using SQL if it's a GeoPackage
-        var photoField = config.photoField || "photo"
+        // List all layer properties to find how to access features
+        var layerProps = []
+        for (var prop in selectedLayer) {
+            var propType = typeof selectedLayer[prop]
+            if (propType === 'function' || prop.toLowerCase().indexOf('feature') >= 0 || 
+                prop.toLowerCase().indexOf('source') >= 0 || prop.toLowerCase().indexOf('data') >= 0) {
+                layerProps.push(prop + ":" + propType)
+                addDebugLog("  " + prop + " (" + propType + ")")
+            }
+        }
         
-        // For now, we cannot query GeoPackage from QML
-        // Show message that user should click "Start Sync" to process all features
-        addDebugLog("Feature counting not available in QField QML")
-        addDebugLog("Click 'Start Sync' to sync all photos in layer")
+        addDebugLog("Total layer properties: " + layerProps.length)
+        
+        // For now, we cannot query features from QML
+        addDebugLog("Feature enumeration not available in QField QML API")
+        addDebugLog("Click 'Start Sync' to attempt sync")
         
         pendingPhotos = []
         totalPhotos = 0
