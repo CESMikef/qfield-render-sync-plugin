@@ -62,19 +62,25 @@ Popup {
             // Also try to get layers directly here for debugging
             if (typeof qgisProject !== 'undefined' && qgisProject) {
                 addDebugLog("qgisProject exists in dialog")
-                var mapLayers = qgisProject.mapLayers
-                addDebugLog("mapLayers type: " + typeof mapLayers)
                 
-                var count = 0
-                for (var id in mapLayers) {
-                    count++
-                    addDebugLog("Layer ID: " + id)
-                    if (mapLayers[id]) {
-                        addDebugLog("  Name: " + mapLayers[id].name)
-                        addDebugLog("  Type: " + mapLayers[id].type)
+                // List ALL properties and methods on qgisProject
+                addDebugLog("=== qgisProject properties ===")
+                var props = []
+                for (var prop in qgisProject) {
+                    var propType = typeof qgisProject[prop]
+                    props.push(prop + ":" + propType)
+                    if (prop.toLowerCase().indexOf("layer") >= 0 || prop.toLowerCase().indexOf("map") >= 0) {
+                        addDebugLog("  " + prop + " (" + propType + ")")
                     }
                 }
-                addDebugLog("Total layers in map: " + count)
+                addDebugLog("Total properties: " + props.length)
+                
+                // Try different ways to access layers
+                addDebugLog("=== Trying different methods ===")
+                addDebugLog("mapLayers: " + typeof qgisProject.mapLayers)
+                addDebugLog("layers: " + typeof qgisProject.layers)
+                addDebugLog("layerStore: " + typeof qgisProject.layerStore)
+                addDebugLog("mapLayersByName: " + typeof qgisProject.mapLayersByName)
             } else {
                 addDebugLog("qgisProject NOT available in dialog!")
             }
