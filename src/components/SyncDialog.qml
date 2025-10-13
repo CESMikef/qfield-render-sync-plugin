@@ -99,14 +99,36 @@ Popup {
                     addDebugLog("dashBoard.layerTree: " + typeof dashBoard.layerTree)
                     addDebugLog("dashBoard.activeLayer: " + typeof dashBoard.activeLayer)
                     
-                    // List dashBoard properties
-                    var dashProps = []
-                    for (var dprop in dashBoard) {
-                        if (dprop.toLowerCase().indexOf("layer") >= 0) {
-                            dashProps.push(dprop + ":" + typeof dashBoard[dprop])
+                    // Check layerTree methods
+                    if (dashBoard.layerTree) {
+                        addDebugLog("=== layerTree methods ===")
+                        var ltProps = []
+                        for (var ltprop in dashBoard.layerTree) {
+                            var ltType = typeof dashBoard.layerTree[ltprop]
+                            if (ltType === 'function' || ltprop.toLowerCase().indexOf("layer") >= 0) {
+                                ltProps.push(ltprop + ":" + ltType)
+                            }
+                        }
+                        addDebugLog("layerTree props: " + ltProps.join(", "))
+                        
+                        // Try findLayers
+                        if (typeof dashBoard.layerTree.findLayers === 'function') {
+                            addDebugLog("Calling layerTree.findLayers()...")
+                            var foundLayers = dashBoard.layerTree.findLayers()
+                            addDebugLog("findLayers returned: " + foundLayers.length + " layers")
+                            
+                            for (var i = 0; i < foundLayers.length; i++) {
+                                var tl = foundLayers[i]
+                                addDebugLog("TreeLayer " + i + ": " + typeof tl)
+                                if (tl && typeof tl.layer === 'function') {
+                                    var l = tl.layer()
+                                    if (l) {
+                                        addDebugLog("  -> " + l.name + " (type: " + l.type + ")")
+                                    }
+                                }
+                            }
                         }
                     }
-                    addDebugLog("dashBoard layer props: " + dashProps.join(", "))
                 } else {
                     addDebugLog("dashBoard NOT available")
                 }

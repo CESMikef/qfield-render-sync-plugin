@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.0.7"
+    property string pluginVersion: "3.0.8"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
