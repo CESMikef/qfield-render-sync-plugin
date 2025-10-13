@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.0.5"
+    property string pluginVersion: "3.0.6"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -564,36 +564,43 @@ Item {
             console.log("[Render Sync] qgisProject is available")
             displayToast("qgisProject available")
             
-            // Use layerTreeRoot to get all layers
-            // This is the correct way according to QField's exposed API
-            if (typeof qgisProject.layerTreeRoot === 'function') {
-                console.log("[Render Sync] Using layerTreeRoot()")
-                displayToast("Using layerTreeRoot()")
+            // Since qgisProject doesn't expose mapLayers or layerTreeRoot,
+            // we need to use dashBoard.activeLayer or iterate through known layer names
+            // Let's try using mapLayersByName with common patterns
+            
+            if (typeof qgisProject.mapLayersByName === 'function') {
+                console.log("[Render Sync] Using mapLayersByName()")
+                displayToast("Using mapLayersByName()")
                 
-                var root = qgisProject.layerTreeRoot()
-                if (root && typeof root.findLayers === 'function') {
-                    var layerTreeLayers = root.findLayers()
-                    console.log("[Render Sync] Found", layerTreeLayers.length, "layer tree layers")
-                    displayToast("Found " + layerTreeLayers.length + " layers")
+                // Try to get all layers by checking dashBoard
+                if (dashBoard && dashBoard.layerTree) {
+                    console.log("[Render Sync] dashBoard.layerTree exists")
+                    displayToast("Using dashBoard.layerTree")
                     
-                    for (var i = 0; i < layerTreeLayers.length; i++) {
-                        var treeLayer = layerTreeLayers[i]
-                        if (treeLayer && typeof treeLayer.layer === 'function') {
-                            var layer = treeLayer.layer()
-                            if (layer && layer.type === 0) {
-                                layers.push(layer)
-                                console.log("[Render Sync] ✓ Added vector layer:", layer.name)
-                                displayToast("Found: " + layer.name)
+                    var layerTree = dashBoard.layerTree
+                    if (typeof layerTree.findLayers === 'function') {
+                        var treeLayers = layerTree.findLayers()
+                        console.log("[Render Sync] Found", treeLayers.length, "layers in dashBoard")
+                        
+                        for (var i = 0; i < treeLayers.length; i++) {
+                            var treeLayer = treeLayers[i]
+                            if (treeLayer && typeof treeLayer.layer === 'function') {
+                                var layer = treeLayer.layer()
+                                if (layer && layer.type === 0) {
+                                    layers.push(layer)
+                                    console.log("[Render Sync] ✓ Added vector layer:", layer.name)
+                                    displayToast("Found: " + layer.name)
+                                }
                             }
                         }
                     }
                 } else {
-                    console.log("[Render Sync] layerTreeRoot doesn't have findLayers()")
-                    displayToast("No findLayers() method", "warning")
+                    console.log("[Render Sync] dashBoard.layerTree not available")
+                    displayToast("No dashBoard.layerTree", "warning")
                 }
             } else {
-                console.log("[Render Sync] layerTreeRoot() not available")
-                displayToast("No layerTreeRoot()", "error")
+                console.log("[Render Sync] mapLayersByName() not available")
+                displayToast("No mapLayersByName()", "error")
             }
             
             // Report results

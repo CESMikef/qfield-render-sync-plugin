@@ -76,33 +76,25 @@ Popup {
                 addDebugLog("Total properties: " + props.length)
                 
                 // Try different ways to access layers
-                addDebugLog("=== Trying different methods ===")
-                addDebugLog("layerTreeRoot: " + typeof qgisProject.layerTreeRoot)
+                addDebugLog("=== Trying mapLayersByName ===")
                 
-                if (typeof qgisProject.layerTreeRoot === 'function') {
-                    var root = qgisProject.layerTreeRoot()
-                    addDebugLog("layerTreeRoot() returned: " + typeof root)
+                if (typeof qgisProject.mapLayersByName === 'function') {
+                    addDebugLog("Trying mapLayersByName('verify_poles')...")
+                    var verifyLayers = qgisProject.mapLayersByName('verify_poles')
+                    addDebugLog("Result type: " + typeof verifyLayers)
+                    addDebugLog("Result length: " + (verifyLayers ? verifyLayers.length : "null"))
                     
-                    if (root) {
-                        addDebugLog("root.findLayers: " + typeof root.findLayers)
-                        
-                        if (typeof root.findLayers === 'function') {
-                            var treeLayers = root.findLayers()
-                            addDebugLog("findLayers() returned " + treeLayers.length + " layers")
-                            
-                            for (var i = 0; i < treeLayers.length; i++) {
-                                var treeLayer = treeLayers[i]
-                                addDebugLog("TreeLayer " + i + ": " + typeof treeLayer)
-                                if (treeLayer && typeof treeLayer.layer === 'function') {
-                                    var lyr = treeLayer.layer()
-                                    if (lyr) {
-                                        addDebugLog("  Layer: " + lyr.name + " (type: " + lyr.type + ")")
-                                    }
-                                }
-                            }
+                    if (verifyLayers && verifyLayers.length > 0) {
+                        for (var i = 0; i < verifyLayers.length; i++) {
+                            var lyr = verifyLayers[i]
+                            addDebugLog("Layer " + i + ": " + lyr.name + " (type: " + lyr.type + ")")
                         }
                     }
                 }
+                
+                // Try mapLayer (singular) - might need layer ID
+                addDebugLog("=== Checking mapLayer ===")
+                addDebugLog("mapLayer: " + typeof qgisProject.mapLayer)
             } else {
                 addDebugLog("qgisProject NOT available in dialog!")
             }
