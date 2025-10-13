@@ -216,12 +216,68 @@ Popup {
             }
         }
         
-        // For now, we cannot enumerate all features from QML
-        addDebugLog("Feature enumeration not available in QField QML API")
-        addDebugLog("Click 'Start Sync' to attempt sync")
+        // Try using selectAll() + selectedFeatures() to enumerate features
+        addDebugLog("Attempting to enumerate features using selectAll()...")
         
-        pendingPhotos = []
-        totalPhotos = 0
+        try {
+            // Save current selection
+            var previousSelection = selectedLayer.selectedFeatureIds()
+            addDebugLog("Saved " + previousSelection.length + " previously selected features")
+            
+            // Select all features
+            selectedLayer.selectAll()
+            addDebugLog("Called selectAll()")
+            
+            // Get selected features
+            var features = selectedLayer.selectedFeatures()
+            addDebugLog("selectedFeatures() returned: " + typeof features)
+            addDebugLog("Features count: " + (features ? features.length : "null"))
+            
+            if (features && features.length > 0) {
+                var photoField = config.photoField || "photo"
+                addDebugLog("Checking " + features.length + " features for photos...")
+                
+                pendingPhotos = []
+                
+                for (var i = 0; i < features.length; i++) {
+                    var feature = features[i]
+                    if (feature && typeof feature.attribute === 'function') {
+                        var photoPath = feature.attribute(photoField)
+                        
+                        if (photoPath && typeof photoPath === 'string' && photoPath.trim() !== '') {
+                            // Check if it's a local path (not already synced URL)
+                            if (!/^https?:\/\//i.test(photoPath)) {
+                                pendingPhotos.push({
+                                    feature: feature,
+                                    fid: feature.id(),
+                                    localPath: photoPath
+                                })
+                                addDebugLog("  Found photo: " + photoPath.substring(0, 50))
+                            }
+                        }
+                    }
+                }
+                
+                totalPhotos = pendingPhotos.length
+                addDebugLog("SUCCESS: Found " + totalPhotos + " pending photos!")
+            } else {
+                addDebugLog("No features returned from selectedFeatures()")
+                pendingPhotos = []
+                totalPhotos = 0
+            }
+            
+            // Restore previous selection
+            selectedLayer.removeSelection()
+            if (previousSelection.length > 0) {
+                selectedLayer.selectByIds(previousSelection)
+            }
+            addDebugLog("Restored previous selection")
+            
+        } catch (e) {
+            addDebugLog("ERROR: " + e.toString())
+            pendingPhotos = []
+            totalPhotos = 0
+        }
     }
     
     function startSync() {
