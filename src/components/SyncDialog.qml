@@ -58,8 +58,29 @@ Popup {
         
         try {
             addDebugLog("Calling plugin.getVectorLayersV2()...")
+            
+            // Also try to get layers directly here for debugging
+            if (typeof qgisProject !== 'undefined' && qgisProject) {
+                addDebugLog("qgisProject exists in dialog")
+                var mapLayers = qgisProject.mapLayers()
+                addDebugLog("mapLayers type: " + typeof mapLayers)
+                
+                var count = 0
+                for (var id in mapLayers) {
+                    count++
+                    addDebugLog("Layer ID: " + id)
+                    if (mapLayers[id]) {
+                        addDebugLog("  Name: " + mapLayers[id].name)
+                        addDebugLog("  Type: " + mapLayers[id].type)
+                    }
+                }
+                addDebugLog("Total layers in map: " + count)
+            } else {
+                addDebugLog("qgisProject NOT available in dialog!")
+            }
+            
             var layers = plugin.getVectorLayersV2()
-            addDebugLog("Got " + layers.length + " vector layers")
+            addDebugLog("Got " + layers.length + " vector layers from plugin")
             
             if (layers.length === 0) {
                 addDebugLog("WARNING: No vector layers found")
