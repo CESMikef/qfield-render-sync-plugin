@@ -119,7 +119,9 @@ function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress
     var globalId = photoData.globalId;
     var localPath = photoData.localPath;
     
-    console.log('[Sync] Syncing photo for feature: ' + globalId);
+    // Don't use console.log with globalId - it causes exceptions in QML
+    // console.log('[Sync] Syncing photo for feature: ' + globalId);
+    if (onProgress) onProgress(0, 'Syncing feature...');
     
     // Step 1: Upload to WebDAV
     if (onProgress) onProgress(0, 'Uploading to WebDAV...');
@@ -135,7 +137,7 @@ function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress
         },
         function(uploadSuccess, photoUrl, uploadError) {
             if (!uploadSuccess) {
-                console.log('[Sync] ERROR: Upload failed for ' + globalId + ': ' + uploadError);
+                // console.log('[Sync] ERROR: Upload failed for ' + globalId + ': ' + uploadError);
                 onComplete(false, null, uploadError);
                 return;
             }
@@ -153,7 +155,7 @@ function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress
                 3, // Max retries
                 function(apiSuccess, apiData, apiError) {
                     if (!apiSuccess) {
-                        console.log('[Sync] ERROR: API update failed for ' + globalId + ': ' + apiError);
+                        // console.log('[Sync] ERROR: API update failed for ' + globalId + ': ' + apiError);
                         onComplete(false, photoUrl, apiError);
                         return;
                     }
@@ -167,7 +169,7 @@ function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress
                         layer.commitChanges();
                         
                         if (onProgress) onProgress(100, 'Complete');
-                        console.log('[Sync] Successfully synced photo for ' + globalId);
+                        // console.log('[Sync] Successfully synced photo for ' + globalId);
                         onComplete(true, photoUrl, null);
                         
                     } catch (e) {
