@@ -261,10 +261,12 @@ Popup {
         }
         
         Text {
-            text: "Pending photos: " + totalPhotos
-            font.pixelSize: 16
+            text: totalPhotos > 0 ? ("Pending photos: " + totalPhotos) : "Photo count unavailable (click Start Sync to process all)"
+            font.pixelSize: 14
             font.bold: true
-            color: totalPhotos > 0 ? "#FF9800" : "#4CAF50"
+            color: "#2196F3"
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
         }
         
         Text {
@@ -294,7 +296,7 @@ Popup {
         Button {
             text: syncing ? "Syncing..." : "Start Sync"
             Layout.fillWidth: true
-            enabled: !syncing && totalPhotos > 0
+            enabled: !syncing && selectedLayer !== null
             onClicked: startSync()
         }
         
