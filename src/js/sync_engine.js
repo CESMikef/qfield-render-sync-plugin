@@ -193,36 +193,54 @@ function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress
  * @param {function} onAllComplete - All photos completion callback(results)
  */
 function syncAllPhotos(pendingPhotos, config, layer, webdavModule, apiModule, onPhotoProgress, onPhotoComplete, onAllComplete) {
-    if (!pendingPhotos || pendingPhotos.length === 0) {
-        console.log('[Sync] No photos to sync');
-        onAllComplete({
-            total: 0,
-            succeeded: 0,
-            failed: 0,
-            errors: []
-        });
-        return;
-    }
+    // DIAGNOSTIC: Report entry
+    if (onPhotoProgress) onPhotoProgress(0, 5, 20, "[SyncEngine] syncAllPhotos called");
     
-    var results = {
-        total: pendingPhotos.length,
-        succeeded: 0,
-        failed: 0,
-        errors: []
-    };
-    
-    var currentIndex = 0;
-    
-    function syncNext() {
-        if (currentIndex >= pendingPhotos.length) {
-            // All photos processed
-            console.log('[Sync] Sync complete: ' + results.succeeded + ' succeeded, ' + results.failed + ' failed');
-            onAllComplete(results);
+    try {
+        if (onPhotoProgress) onPhotoProgress(0, 5, 21, "[SyncEngine] Checking pendingPhotos...");
+        
+        if (!pendingPhotos || pendingPhotos.length === 0) {
+            console.log('[Sync] No photos to sync');
+            if (onPhotoProgress) onPhotoProgress(0, 5, 22, "[SyncEngine] No photos to sync");
+            onAllComplete({
+                total: 0,
+                succeeded: 0,
+                failed: 0,
+                errors: []
+            });
             return;
         }
         
-        var photoData = pendingPhotos[currentIndex];
-        var photoIndex = currentIndex;
+        if (onPhotoProgress) onPhotoProgress(0, 5, 23, "[SyncEngine] Photos count: " + pendingPhotos.length);
+        
+        var results = {
+            total: pendingPhotos.length,
+            succeeded: 0,
+            failed: 0,
+            errors: []
+        };
+        
+        if (onPhotoProgress) onPhotoProgress(0, 5, 24, "[SyncEngine] Results object created");
+        
+        var currentIndex = 0;
+        
+        if (onPhotoProgress) onPhotoProgress(0, 5, 25, "[SyncEngine] About to define syncNext");
+        
+        function syncNext() {
+            if (onPhotoProgress) onPhotoProgress(0, 5, 26, "[SyncEngine] syncNext called, index: " + currentIndex);
+            
+            if (currentIndex >= pendingPhotos.length) {
+                // All photos processed
+                console.log('[Sync] Sync complete: ' + results.succeeded + ' succeeded, ' + results.failed + ' failed');
+                onAllComplete(results);
+                return;
+            }
+            
+            if (onPhotoProgress) onPhotoProgress(0, 5, 27, "[SyncEngine] Getting photoData...");
+            var photoData = pendingPhotos[currentIndex];
+            if (onPhotoProgress) onPhotoProgress(0, 5, 28, "[SyncEngine] photoData retrieved");
+            
+            var photoIndex = currentIndex;
         
         syncPhoto(
             photoData,
@@ -259,8 +277,23 @@ function syncAllPhotos(pendingPhotos, config, layer, webdavModule, apiModule, on
         );
     }
     
+    if (onPhotoProgress) onPhotoProgress(0, 5, 29, "[SyncEngine] About to call syncNext()");
+    
     // Start syncing
     syncNext();
+    
+    if (onPhotoProgress) onPhotoProgress(0, 5, 30, "[SyncEngine] syncNext() called");
+    
+    } catch (e) {
+        if (onPhotoProgress) onPhotoProgress(0, 5, 99, "[SyncEngine] EXCEPTION: " + e.toString());
+        console.log('[SyncEngine] EXCEPTION in syncAllPhotos: ' + e.toString());
+        onAllComplete({
+            total: 0,
+            succeeded: 0,
+            failed: 0,
+            errors: ["Exception: " + e.toString()]
+        });
+    }
 }
 
 /**
