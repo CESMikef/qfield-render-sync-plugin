@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.1.1"
+    property string pluginVersion: "3.1.2"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -179,7 +179,7 @@ Item {
         
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE) {
-                loadingConfig = false
+                plugin.loadingConfig = false
                 
                 console.log("[Render Sync] API Response Status: " + xhr.status)
                 console.log("[Render Sync] API Response: " + xhr.responseText)
@@ -234,7 +234,7 @@ Item {
         }
         
         xhr.onerror = function() {
-            loadingConfig = false
+            plugin.loadingConfig = false
             console.log("[Render Sync] Network error fetching configuration")
             displayToast("Network error", "error")
             configValid = false
