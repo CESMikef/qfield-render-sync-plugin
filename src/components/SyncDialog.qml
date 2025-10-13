@@ -268,6 +268,7 @@ Popup {
                                 pendingPhotos.push({
                                     feature: feature,
                                     fid: featureId,
+                                    globalId: featureId, // Sync engine expects globalId
                                     localPath: fullPath
                                 })
                                 if (fullPath !== photoPath) {
