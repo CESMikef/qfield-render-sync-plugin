@@ -321,14 +321,20 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
         if (onProgress) onProgress(5, 'Reading file...');
         
         // Try to read and upload the file
+        if (onProgress) onProgress(6, 'Creating file reader...');
         var fileReader = new XMLHttpRequest();
+        
+        if (onProgress) onProgress(7, 'Setting response type...');
         fileReader.responseType = 'arraybuffer';
         
+        if (onProgress) onProgress(8, 'Setting up file reader callbacks...');
         fileReader.onreadystatechange = function() {
+            if (onProgress) onProgress(9, 'File reader state: ' + fileReader.readyState);
             if (fileReader.readyState === XMLHttpRequest.DONE) {
+                if (onProgress) onProgress(10, 'File read complete, status: ' + fileReader.status);
                 if (fileReader.status === 200 || fileReader.status === 0) {
                     // console.log('[WebDAV] File read successfully, uploading...');
-                    if (onProgress) onProgress(10, 'Uploading to server...');
+                    if (onProgress) onProgress(15, 'Uploading to server...');
                     try {
                         xhr.send(fileReader.response);
                     } catch (e) {
@@ -337,17 +343,21 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
                     }
                 } else {
                     // console.log('[WebDAV] ERROR: Failed to read file, status: ' + fileReader.status);
-                    onComplete(false, 'Cannot read file at: ' + localPath);
+                    onComplete(false, 'Cannot read file, status: ' + fileReader.status);
                 }
             }
         };
         
         fileReader.onerror = function() {
+            if (onProgress) onProgress(99, 'File reader ERROR!');
             // console.log('[WebDAV] ERROR: File read error');
-            onComplete(false, 'Error reading file: ' + localPath);
+            onComplete(false, 'Error reading file');
         };
         
+        if (onProgress) onProgress(11, 'Opening file reader...');
         fileReader.open('GET', fileUrl, true);
+        
+        if (onProgress) onProgress(12, 'Sending file reader request...');
         fileReader.send();
         
     } catch (e) {
