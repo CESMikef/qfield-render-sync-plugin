@@ -222,7 +222,8 @@ Popup {
         try {
             // Save current selection
             var previousSelection = selectedLayer.selectedFeatureIds()
-            addDebugLog("Saved " + previousSelection.length + " previously selected features")
+            var prevCount = previousSelection ? previousSelection.length : 0
+            addDebugLog("Saved " + prevCount + " previously selected features")
             
             // Select all features
             selectedLayer.selectAll()
@@ -268,10 +269,12 @@ Popup {
             
             // Restore previous selection
             selectedLayer.removeSelection()
-            if (previousSelection.length > 0) {
+            if (previousSelection && previousSelection.length > 0) {
                 selectedLayer.selectByIds(previousSelection)
+                addDebugLog("Restored " + previousSelection.length + " selected features")
+            } else {
+                addDebugLog("No previous selection to restore")
             }
-            addDebugLog("Restored previous selection")
             
         } catch (e) {
             addDebugLog("ERROR: " + e.toString())
