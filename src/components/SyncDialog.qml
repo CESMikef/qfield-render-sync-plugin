@@ -248,9 +248,12 @@ Popup {
                         if (photoPath && typeof photoPath === 'string' && photoPath.trim() !== '') {
                             // Check if it's a local path (not already synced URL)
                             if (!/^https?:\/\//i.test(photoPath)) {
+                                // Try both feature.id and feature.id() 
+                                var featureId = (typeof feature.id === 'function') ? feature.id() : feature.id
+                                
                                 pendingPhotos.push({
                                     feature: feature,
-                                    fid: feature.id(),
+                                    fid: featureId,
                                     localPath: photoPath
                                 })
                                 addDebugLog("  Found photo: " + photoPath.substring(0, 50))
