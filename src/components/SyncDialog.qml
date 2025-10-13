@@ -5,7 +5,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
-import Qt.labs.platform 1.1
+import QtQuick.LocalStorage 2.12
 
 Popup {
     id: syncDialog
@@ -226,9 +226,9 @@ Popup {
         addDebugLog("Table name: " + tableName)
         addDebugLog("Photo field: " + photoField)
         
-        // Use Qt.openDatabaseSync to query the GeoPackage
+        // Use LocalStorage.openDatabaseSync to query the GeoPackage
         try {
-            var db = Qt.openDatabaseSync(gpkgPath, "", "GeoPackage", 1000000)
+            var db = LocalStorage.openDatabaseSync(gpkgPath, "", "GeoPackage", 1000000)
             addDebugLog("Database opened successfully")
             
             db.transaction(function(tx) {
