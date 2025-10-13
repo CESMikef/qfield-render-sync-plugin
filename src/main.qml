@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.4.7"
+    property string pluginVersion: "3.5.0"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -416,35 +416,33 @@ Item {
      * Sync photos (called from dialog)
      */
     function syncPhotos(pendingPhotos, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
+        // DIAGNOSTIC: Report status immediately via callback
+        if (onPhotoProgress) {
+            onPhotoProgress(0, 5, 1, "syncPhotos function called")
+        }
+        
         try {
-            console.log("[Render Sync] ========== SYNC PHOTOS CALLED ==========")
-            console.log("[Render Sync] Function entered successfully")
-            console.log("[Render Sync] Step 1: Checking parameters...")
-            var photosCount = 0
-            try {
-                photosCount = pendingPhotos ? pendingPhotos.length : 0
-            } catch (e) {
-                console.log("[Render Sync] ERROR getting pendingPhotos.length: " + e)
-            }
-            console.log("[Render Sync] Pending photos count: " + photosCount)
+            if (onPhotoProgress) onPhotoProgress(0, 5, 2, "Entered try block")
             
-            console.log("[Render Sync] Step 2: Checking config...")
-            console.log("[Render Sync] Config valid: " + configValid)
-            console.log("[Render Sync] Config exists: " + (config ? "yes" : "no"))
+            var photosCount = pendingPhotos ? pendingPhotos.length : 0
+            if (onPhotoProgress) onPhotoProgress(0, 5, 3, "Photos count: " + photosCount)
             
-            console.log("[Render Sync] Step 3: Checking layer...")
-            var layerName = "unknown"
-            try {
-                layerName = layer ? layer.name : "null"
-            } catch (e) {
-                console.log("[Render Sync] ERROR getting layer.name: " + e)
-            }
-            console.log("[Render Sync] Layer: " + layerName)
+            if (onPhotoProgress) onPhotoProgress(0, 5, 4, "Config valid: " + configValid)
             
-            console.log("[Render Sync] Step 4: Checking modules...")
-            console.log("[Render Sync] WebDAV module type: " + (typeof WebDAV))
-            console.log("[Render Sync] API module type: " + (typeof API))
-            console.log("[Render Sync] SyncEngine module type: " + (typeof SyncEngine))
+            var layerName = layer ? layer.name : "null"
+            if (onPhotoProgress) onPhotoProgress(0, 5, 5, "Layer: " + layerName)
+            
+            if (onPhotoProgress) onPhotoProgress(0, 5, 6, "Checking WebDAV...")
+            var webdavType = typeof WebDAV
+            if (onPhotoProgress) onPhotoProgress(0, 5, 7, "WebDAV type: " + webdavType)
+            
+            if (onPhotoProgress) onPhotoProgress(0, 5, 8, "Checking API...")
+            var apiType = typeof API
+            if (onPhotoProgress) onPhotoProgress(0, 5, 9, "API type: " + apiType)
+            
+            if (onPhotoProgress) onPhotoProgress(0, 5, 10, "Checking SyncEngine...")
+            var syncEngineType = typeof SyncEngine
+            if (onPhotoProgress) onPhotoProgress(0, 5, 11, "SyncEngine type: " + syncEngineType)
             
             if (!configValid) {
                 console.log("[Render Sync] ERROR: Config not valid!")
