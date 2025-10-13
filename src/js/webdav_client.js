@@ -226,9 +226,9 @@ function uploadPhotoWithCheck(localPath, globalId, webdavUrl, username, password
     var filename = originalFilename || generatePhotoFilename(globalId, extension);
     var remoteUrl = webdavUrl.replace(/\/$/, '') + '/' + filename;
     
-    console.log('[WebDAV] Starting photo upload: ' + filename);
-    console.log('[WebDAV] Local path: ' + localPath);
-    console.log('[WebDAV] Remote URL: ' + remoteUrl);
+    // console.log('[WebDAV] Starting photo upload: ' + filename);
+    // console.log('[WebDAV] Local path: ' + localPath);
+    // console.log('[WebDAV] Remote URL: ' + remoteUrl);
     
     // SKIP duplicate check in QField - just upload directly
     // This avoids file reading issues in QML
@@ -307,7 +307,7 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
             fileUrl = 'file:///' + localPath.replace(/\\/g, '/');
         }
         
-        console.log('[WebDAV] Reading from: ' + fileUrl);
+        // console.log('[WebDAV] Reading from: ' + fileUrl);
         if (onProgress) onProgress(5, 'Reading file...');
         
         // Try to read and upload the file
@@ -317,23 +317,23 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
         fileReader.onreadystatechange = function() {
             if (fileReader.readyState === XMLHttpRequest.DONE) {
                 if (fileReader.status === 200 || fileReader.status === 0) {
-                    console.log('[WebDAV] File read successfully, uploading...');
+                    // console.log('[WebDAV] File read successfully, uploading...');
                     if (onProgress) onProgress(10, 'Uploading to server...');
                     try {
                         xhr.send(fileReader.response);
                     } catch (e) {
-                        console.log('[WebDAV] ERROR: Failed to send: ' + e.toString());
+                        // console.log('[WebDAV] ERROR: Failed to send: ' + e.toString());
                         onComplete(false, 'Failed to send file: ' + e.toString());
                     }
                 } else {
-                    console.log('[WebDAV] ERROR: Failed to read file, status: ' + fileReader.status);
+                    // console.log('[WebDAV] ERROR: Failed to read file, status: ' + fileReader.status);
                     onComplete(false, 'Cannot read file at: ' + localPath);
                 }
             }
         };
         
         fileReader.onerror = function() {
-            console.log('[WebDAV] ERROR: File read error');
+            // console.log('[WebDAV] ERROR: File read error');
             onComplete(false, 'Error reading file: ' + localPath);
         };
         
@@ -341,7 +341,7 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
         fileReader.send();
         
     } catch (e) {
-        console.log('[WebDAV] ERROR: Exception: ' + e.toString());
+        // console.log('[WebDAV] ERROR: Exception: ' + e.toString());
         onComplete(false, 'Failed to process file: ' + e.toString());
     }
 }
