@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.8.5"
+    property string pluginVersion: "2.8.6"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -556,59 +556,85 @@ Item {
      */
     function getVectorLayersV2() {
         console.log("[Render Sync] ========== GET VECTOR LAYERS V2 ==========")
-        displayToast("")
+        console.log("[Render Sync] Plugin version:", pluginVersion)
+        displayToast("Detecting layers...")
         
         var layers = []
+        var projectRef = null
         
         try {
-            // Use qfProject (the plugin's project reference) instead of qgisProject
-            if (!qfProject) {
-                console.log("[Render Sync] ERROR: qfProject not available")
-                displayToast("", "error")
-                
-                // Try to get project reference now
-                if (typeof qgis !== 'undefined' && qgis.project) {
-                    qfProject = qgis.project
-                    console.log("[Render Sync] Got project from qgis.project")
-                } else if (iface && iface.project) {
-                    qfProject = iface.project
-                    console.log("[Render Sync] Got project from iface.project")
-                }
-                
-                if (!qfProject) {
-                    console.log("[Render Sync] ERROR: Could not get project reference")
-                    displayToast("", "error")
-                    return []
-                }
+            // Try multiple ways to get project reference
+            console.log("[Render Sync] Attempting to get project reference...")
+            console.log("[Render Sync] qfProject is:", qfProject ? "SET" : "NULL")
+            console.log("[Render Sync] typeof qgis:", typeof qgis)
+            console.log("[Render Sync] typeof qgisProject:", typeof qgisProject)
+            console.log("[Render Sync] iface exists:", !!iface)
+            
+            // Try qfProject first
+            if (qfProject) {
+                projectRef = qfProject
+                console.log("[Render Sync] Using qfProject")
+            }
+            // Try qgis.project
+            else if (typeof qgis !== 'undefined' && qgis.project) {
+                projectRef = qgis.project
+                qfProject = projectRef
+                console.log("[Render Sync] Got project from qgis.project")
+            }
+            // Try iface.project
+            else if (iface && iface.project) {
+                projectRef = iface.project
+                qfProject = projectRef
+                console.log("[Render Sync] Got project from iface.project")
+            }
+            // Try global qgisProject
+            else if (typeof qgisProject !== 'undefined' && qgisProject) {
+                projectRef = qgisProject
+                qfProject = projectRef
+                console.log("[Render Sync] Got project from qgisProject global")
             }
             
-            displayToast("")
-            console.log("[Render Sync] qfProject exists")
+            if (!projectRef) {
+                console.log("[Render Sync] ERROR: Could not get project reference from any source")
+                displayToast("ERROR: No project reference available", "error")
+                return []
+            }
+            
+            console.log("[Render Sync] Project reference obtained successfully")
+            console.log("[Render Sync] Project object type:", typeof projectRef)
+            
+            // Log available methods on project
+            var projectMethods = []
+            for (var prop in projectRef) {
+                if (typeof projectRef[prop] === 'function') {
+                    projectMethods.push(prop)
+                }
+            }
+            console.log("[Render Sync] Project methods available:", projectMethods.join(", "))
             
             // Use layerTreeRoot() - this is the correct QField API
-            if (typeof qfProject.layerTreeRoot !== 'function') {
-                console.log("[Render Sync] ERROR: layerTreeRoot() not available")
-                displayToast("", "error")
+            if (typeof projectRef.layerTreeRoot !== 'function') {
+                console.log("[Render Sync] ERROR: layerTreeRoot() not available on project")
+                displayToast("ERROR: layerTreeRoot() not available", "error")
                 return []
             }
             
-            displayToast("")
-            console.log("[Render Sync] layerTreeRoot() exists")
+            console.log("[Render Sync] Calling layerTreeRoot()...")
+            var root = projectRef.layerTreeRoot()
             
-            var root = qfProject.layerTreeRoot()
             if (!root) {
                 console.log("[Render Sync] ERROR: layerTreeRoot() returned null")
-                displayToast("", "error")
+                displayToast("ERROR: layerTreeRoot() returned null", "error")
                 return []
             }
             
-            displayToast("")
-            console.log("[Render Sync] Got layerTreeRoot")
+            console.log("[Render Sync] Got layerTreeRoot successfully")
+            console.log("[Render Sync] Root object type:", typeof root)
             
             // Get children (layer nodes)
             if (typeof root.children !== 'function') {
                 console.log("[Render Sync] ERROR: root.children() not available")
-                displayToast("", "error")
+                displayToast("ERROR: root.children() not available", "error")
                 return []
             }
             
