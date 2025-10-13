@@ -196,7 +196,27 @@ Popup {
         
         addDebugLog("Total layer properties: " + layerProps.length)
         
-        // For now, we cannot query features from QML
+        // Try using dataProvider to get features
+        if (typeof selectedLayer.dataProvider === 'function') {
+            addDebugLog("Trying dataProvider()...")
+            var provider = selectedLayer.dataProvider()
+            
+            if (provider) {
+                addDebugLog("dataProvider exists, type: " + typeof provider)
+                
+                // List provider properties
+                for (var pprop in provider) {
+                    var ppropType = typeof provider[pprop]
+                    if (ppropType === 'function' || pprop.toLowerCase().indexOf('feature') >= 0) {
+                        addDebugLog("  provider." + pprop + " (" + ppropType + ")")
+                    }
+                }
+            } else {
+                addDebugLog("dataProvider() returned null")
+            }
+        }
+        
+        // For now, we cannot enumerate all features from QML
         addDebugLog("Feature enumeration not available in QField QML API")
         addDebugLog("Click 'Start Sync' to attempt sync")
         
