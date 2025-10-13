@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.8.6"
+    property string pluginVersion: "2.8.7"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -55,7 +55,7 @@ Item {
     
     Component.onCompleted: {
         console.log("=== QFIELD RENDER SYNC PLUGIN LOADING ===")
-        console.log("Plugin version: 2.8.2")
+        console.log("Plugin version:", pluginVersion)
         console.log("Timestamp: " + new Date().toISOString())
         console.log("Testing basic console logging...")
         
@@ -65,28 +65,38 @@ Item {
         console.log("Plugin initialization completed")
         
         // Show visible startup message
-        displayToast("Render Sync v2.8.2 loading...")
+        displayToast("Render Sync v" + pluginVersion + " loading...")
         
         console.log("Proceeding with project setup...")
         
-        // Try to get project reference at startup
-        console.log("[Render Sync] Attempting to get project reference...")
-        if (typeof qgis !== 'undefined') {
-            console.log("[Render Sync] qgis object exists")
-            if (qgis.project) {
-                qfProject = qgis.project
-                console.log("[Render Sync] âœ“ Got project from qgis.project")
-                displayToast("âœ“ Project accessed via qgis.project")
+        // Delay project reference to allow project to fully load
+        Qt.callLater(function() {
+            // Try to get project reference after a delay
+            console.log("[Render Sync] Attempting to get project reference (delayed)...")
+            if (typeof qgis !== 'undefined') {
+                console.log("[Render Sync] qgis object exists")
+                if (qgis.project) {
+                    qfProject = qgis.project
+                    console.log("[Render Sync] Got project from qgis.project")
+                    displayToast("Project accessed")
+                }
             }
-        }
-        if (!qfProject && iface && iface.project) {
-            qfProject = iface.project
-            console.log("[Render Sync] âœ“ Got project from iface.project")
-            displayToast("âœ“ Project accessed via iface.project")
-        }
-        if (!qfProject) {
-            console.log("[Render Sync] âš ï¸ Could not get project reference at startup")
-        }
+            if (!qfProject && iface && iface.project) {
+                qfProject = iface.project
+                console.log("[Render Sync] Got project from iface.project")
+                displayToast("Project accessed")
+            }
+            if (!qfProject && typeof qgisProject !== 'undefined' && qgisProject) {
+                qfProject = qgisProject
+                console.log("[Render Sync] Got project from qgisProject global")
+                displayToast("Project accessed")
+            }
+            if (!qfProject) {
+                console.log("[Render Sync] Could not get project reference at startup")
+            } else {
+                console.log("[Render Sync] Project reference set successfully")
+            }
+        })
         
         // Add button to QField toolbar
         if (iface && iface.addItemToPluginsToolbar) {
