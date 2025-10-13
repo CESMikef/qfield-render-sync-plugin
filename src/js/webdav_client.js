@@ -275,16 +275,13 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
         if (onProgress) onProgress(6, 'Creating upload request...');
         var xhr = new XMLHttpRequest();
         
-        if (onProgress) onProgress(7, 'Setting up progress tracking...');
-        // Track upload progress
-        xhr.upload.onprogress = function(event) {
-            if (event.lengthComputable && onProgress) {
-                var percent = Math.round((event.loaded / event.total) * 100);
-                onProgress(percent, 'Uploading... ' + percent + '%');
-            }
-        };
-    
-    xhr.onreadystatechange = function() {
+        if (onProgress) onProgress(7, 'Setting up event handlers...');
+        
+        // QML XMLHttpRequest doesn't support xhr.upload.onprogress
+        // Just use basic onreadystatechange
+        
+        xhr.onreadystatechange = function() {
+            if (onProgress) onProgress(8, 'State changed: ' + xhr.readyState);
         if (xhr.readyState === XMLHttpRequest.DONE) {
             if (xhr.status === 200 || xhr.status === 201 || xhr.status === 204) {
                 console.log('[WebDAV] Photo uploaded successfully');
