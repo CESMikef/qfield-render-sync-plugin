@@ -5,6 +5,7 @@
 import QtQuick 2.12
 import QtQuick.Controls 2.12
 import QtQuick.Layouts 1.12
+import Qt.labs.platform 1.1
 
 Popup {
     id: syncDialog
@@ -177,23 +178,98 @@ Popup {
         }
         
         console.log("[SyncDialog] Layer name:", selectedLayer.name)
+        console.log("[SyncDialog] Layer source:", selectedLayer.source)
         console.log("[SyncDialog] Photo field:", config.photoField || "photo")
         
-        // QField QML API doesn't expose getFeatures() or feature iteration
-        // We'll need to use a different approach or accept that we can't count pending photos
-        // The sync will still work when the user clicks "Start Sync"
+        addDebugLog("Layer: " + selectedLayer.name)
+        addDebugLog("Source: " + selectedLayer.source)
         
-        pendingPhotos = []
-        totalPhotos = 0
+        // Try to query the layer using SQL if it's a GeoPackage
+        var photoField = config.photoField || "photo"
         
-        console.log("[SyncDialog] Note: Cannot enumerate features in QField QML API")
-        console.log("[SyncDialog] Pending photo count unavailable - sync will process all features")
+        // Check if layer source contains .gpkg (GeoPackage)
+        if (selectedLayer.source && selectedLayer.source.indexOf(".gpkg") >= 0) {
+            addDebugLog("Layer is GeoPackage, attempting SQL query...")
+            queryGeoPackageForPhotos(selectedLayer, photoField)
+        } else {
+            addDebugLog("Layer is not GeoPackage, cannot query features")
+            addDebugLog("Manual sync required - click 'Start Sync' to process all features")
+            pendingPhotos = []
+            totalPhotos = 0
+        }
+    }
+    
+    function queryGeoPackageForPhotos(layer, photoField) {
+        // Extract GeoPackage path and table name from layer source
+        var source = layer.source
+        addDebugLog("Parsing source: " + source)
         
-        // TODO: Implement feature counting using QField's exposed API
-        // Possible approaches:
-        // 1. Use iface to access feature form drawer
-        // 2. Query via SQL if it's a GeoPackage
-        // 3. Accept limitation and sync all features
+        // Source format: /path/to/file.gpkg|layername=table_name
+        var gpkgPath = ""
+        var tableName = layer.name
+        
+        if (source.indexOf("|") >= 0) {
+            var parts = source.split("|")
+            gpkgPath = parts[0]
+            
+            // Extract table name from layername=xxx
+            for (var i = 1; i < parts.length; i++) {
+                if (parts[i].indexOf("layername=") === 0) {
+                    tableName = parts[i].substring(10)
+                }
+            }
+        } else {
+            gpkgPath = source
+        }
+        
+        addDebugLog("GeoPackage path: " + gpkgPath)
+        addDebugLog("Table name: " + tableName)
+        addDebugLog("Photo field: " + photoField)
+        
+        // Use Qt.openDatabaseSync to query the GeoPackage
+        try {
+            var db = Qt.openDatabaseSync(gpkgPath, "", "GeoPackage", 1000000)
+            addDebugLog("Database opened successfully")
+            
+            db.transaction(function(tx) {
+                // Query for features with non-empty photo field
+                var query = "SELECT fid, " + photoField + " FROM " + tableName + 
+                           " WHERE " + photoField + " IS NOT NULL AND " + photoField + " != ''"
+                
+                addDebugLog("Executing query: " + query)
+                
+                var result = tx.executeSql(query)
+                addDebugLog("Query returned " + result.rows.length + " rows")
+                
+                pendingPhotos = []
+                
+                for (var i = 0; i < result.rows.length; i++) {
+                    var row = result.rows.item(i)
+                    var photoPath = row[photoField]
+                    
+                    addDebugLog("Row " + i + ": fid=" + row.fid + ", photo=" + photoPath)
+                    
+                    // Check if it's a local path (not already synced URL)
+                    if (photoPath && !/^https?:\/\//i.test(photoPath)) {
+                        pendingPhotos.push({
+                            fid: row.fid,
+                            localPath: photoPath
+                        })
+                        addDebugLog("  -> Added to pending list")
+                    } else {
+                        addDebugLog("  -> Skipped (already synced)")
+                    }
+                }
+                
+                totalPhotos = pendingPhotos.length
+                addDebugLog("Total pending photos: " + totalPhotos)
+            })
+        } catch (e) {
+            addDebugLog("ERROR querying database: " + e.toString())
+            console.log("[SyncDialog] Database error:", e)
+            pendingPhotos = []
+            totalPhotos = 0
+        }
     }
     
     function startSync() {
