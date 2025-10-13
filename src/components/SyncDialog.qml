@@ -24,22 +24,28 @@ Popup {
     property var pendingPhotos: []
     property bool syncing: false
     property int totalPhotos: 0
+    property string debugLog: ""
+    
+    function addDebugLog(message) {
+        var timestamp = new Date().toLocaleTimeString()
+        debugLog += "[" + timestamp + "] " + message + "\n"
+        console.log("[SyncDialog] " + message)
+    }
     
     Component.onCompleted: {
-        console.log("[SyncDialog] Simple dialog loaded")
+        addDebugLog("Dialog loaded")
     }
     
     onOpened: {
-        console.log("[SyncDialog] Dialog opened")
-        if (plugin && plugin.displayToast) {
-            plugin.displayToast("Dialog opened - Loading layers...")
-        }
+        debugLog = "" // Clear previous logs
+        addDebugLog("Dialog opened")
+        addDebugLog("Loading layers...")
         loadLayers()
         updatePendingCount()
     }
     
     function loadLayers() {
-        console.log("[SyncDialog] Loading layers...")
+        addDebugLog("Loading layers...")
         layerComboBox.model.clear()
         
         if (!plugin) {
@@ -51,41 +57,33 @@ Popup {
         }
         
         try {
+            addDebugLog("Calling plugin.getVectorLayersV2()...")
             var layers = plugin.getVectorLayersV2()
-            console.log("[SyncDialog] Got " + layers.length + " vector layers")
+            addDebugLog("Got " + layers.length + " vector layers")
             
             if (layers.length === 0) {
-                console.log("[SyncDialog] WARNING: No vector layers found in project")
+                addDebugLog("WARNING: No vector layers found")
                 layerComboBox.model.append({
                     text: "No layers found",
                     layer: null
                 })
-                if (plugin && plugin.displayToast) {
-                    plugin.displayToast("No vector layers found in project", "warning")
-                }
                 return
             }
             
             for (var i = 0; i < layers.length; i++) {
                 var layer = layers[i]
                 var layerName = layer.name
-                console.log("[SyncDialog] Adding layer:", layerName)
+                addDebugLog("Adding layer: " + layerName)
                 layerComboBox.model.append({
                     text: layerName,
                     layer: layer
                 })
             }
             
-            console.log("[SyncDialog] Layer loading complete")
-            if (plugin && plugin.displayToast) {
-                plugin.displayToast("✅ Loaded " + layers.length + " layer(s)", "success")
-            }
+            addDebugLog("SUCCESS: Loaded " + layers.length + " layer(s)")
         } catch (e) {
-            console.log("[SyncDialog] ERROR loading layers:", e)
-            console.log("[SyncDialog] Stack:", e.stack)
-            if (plugin && plugin.displayToast) {
-                plugin.displayToast("ERROR: " + e.toString(), "error")
-            }
+            addDebugLog("ERROR: " + e.toString())
+            addDebugLog("Stack: " + (e.stack || "No stack"))
         }
     }
     
@@ -249,6 +247,28 @@ Popup {
             font.pixelSize: 16
             font.bold: true
             color: totalPhotos > 0 ? "#FF9800" : "#4CAF50"
+        }
+        
+        Text {
+            text: "Debug Log:"
+            font.pixelSize: 12
+            font.bold: true
+        }
+        
+        ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            Layout.preferredHeight: 150
+            clip: true
+            
+            TextArea {
+                id: debugTextArea
+                text: debugLog
+                readOnly: true
+                wrapMode: TextArea.Wrap
+                font.pixelSize: 10
+                font.family: "Courier New"
+            }
         }
         
         Item { Layout.fillHeight: true }
