@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.0.8"
+    property string pluginVersion: "3.1.0"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -564,43 +564,55 @@ Item {
             console.log("[Render Sync] qgisProject is available")
             displayToast("qgisProject available")
             
-            // Since qgisProject doesn't expose mapLayers or layerTreeRoot,
-            // we need to use dashBoard.activeLayer or iterate through known layer names
-            // Let's try using mapLayersByName with common patterns
-            
-            if (typeof qgisProject.mapLayersByName === 'function') {
-                console.log("[Render Sync] Using mapLayersByName()")
-                displayToast("Using mapLayersByName()")
+            // Use dashBoard.layerTree which is a QAbstractItemModel
+            if (dashBoard && dashBoard.layerTree) {
+                console.log("[Render Sync] Using dashBoard.layerTree model")
+                displayToast("Using layerTree model")
                 
-                // Try to get all layers by checking dashBoard
-                if (dashBoard && dashBoard.layerTree) {
-                    console.log("[Render Sync] dashBoard.layerTree exists")
-                    displayToast("Using dashBoard.layerTree")
-                    
-                    var layerTree = dashBoard.layerTree
-                    if (typeof layerTree.findLayers === 'function') {
-                        var treeLayers = layerTree.findLayers()
-                        console.log("[Render Sync] Found", treeLayers.length, "layers in dashBoard")
+                var layerTree = dashBoard.layerTree
+                var rowCount = layerTree.rowCount()
+                console.log("[Render Sync] layerTree has", rowCount, "rows")
+                displayToast("LayerTree has " + rowCount + " rows")
+                
+                // Iterate through the model
+                for (var row = 0; row < rowCount; row++) {
+                    var idx = layerTree.index(row, 0)
+                    if (idx) {
+                        // Try to get the layer from the model
+                        // Role 0 = Qt::DisplayRole (name)
+                        // Try custom role for layer object
+                        var layerData = layerTree.data(idx, 256) // Custom role for layer
                         
-                        for (var i = 0; i < treeLayers.length; i++) {
-                            var treeLayer = treeLayers[i]
-                            if (treeLayer && typeof treeLayer.layer === 'function') {
-                                var layer = treeLayer.layer()
-                                if (layer && layer.type === 0) {
-                                    layers.push(layer)
-                                    console.log("[Render Sync] ✓ Added vector layer:", layer.name)
-                                    displayToast("Found: " + layer.name)
+                        if (layerData && typeof layerData === 'object') {
+                            console.log("[Render Sync] Row", row, "- Layer:", layerData.name, "Type:", layerData.type)
+                            
+                            if (layerData.type === 0) {
+                                layers.push(layerData)
+                                console.log("[Render Sync] ✓ Added vector layer:", layerData.name)
+                                displayToast("Found: " + layerData.name)
+                            }
+                        } else {
+                            // Try getting layer name and use mapLayersByName
+                            var layerName = layerTree.data(idx, 0) // DisplayRole
+                            console.log("[Render Sync] Row", row, "- Name:", layerName)
+                            
+                            if (layerName && typeof qgisProject.mapLayersByName === 'function') {
+                                var foundLayers = qgisProject.mapLayersByName(layerName)
+                                if (foundLayers && foundLayers.length > 0) {
+                                    var layer = foundLayers[0]
+                                    if (layer.type === 0) {
+                                        layers.push(layer)
+                                        console.log("[Render Sync] ✓ Added vector layer:", layer.name)
+                                        displayToast("Found: " + layer.name)
+                                    }
                                 }
                             }
                         }
                     }
-                } else {
-                    console.log("[Render Sync] dashBoard.layerTree not available")
-                    displayToast("No dashBoard.layerTree", "warning")
                 }
             } else {
-                console.log("[Render Sync] mapLayersByName() not available")
-                displayToast("No mapLayersByName()", "error")
+                console.log("[Render Sync] dashBoard.layerTree not available")
+                displayToast("No dashBoard.layerTree", "error")
             }
             
             // Report results
