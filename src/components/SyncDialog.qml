@@ -62,7 +62,7 @@ Popup {
             // Also try to get layers directly here for debugging
             if (typeof qgisProject !== 'undefined' && qgisProject) {
                 addDebugLog("qgisProject exists in dialog")
-                var mapLayers = qgisProject.mapLayers()
+                var mapLayers = qgisProject.mapLayers
                 addDebugLog("mapLayers type: " + typeof mapLayers)
                 
                 var count = 0

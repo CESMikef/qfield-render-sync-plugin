@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.0.1"
+    property string pluginVersion: "3.0.2"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -564,8 +564,8 @@ Item {
             console.log("[Render Sync] qgisProject is available")
             displayToast("qgisProject available")
             
-            // Get mapLayers - this is a QMap<QString, QgsMapLayer*> in QField
-            var mapLayers = qgisProject.mapLayers()
+            // Get mapLayers - this is a property, not a function!
+            var mapLayers = qgisProject.mapLayers
             console.log("[Render Sync] mapLayers type:", typeof mapLayers)
             console.log("[Render Sync] mapLayers:", mapLayers)
             
