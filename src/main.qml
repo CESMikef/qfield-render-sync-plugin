@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.4.6"
+    property string pluginVersion: "3.4.7"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -416,9 +416,9 @@ Item {
      * Sync photos (called from dialog)
      */
     function syncPhotos(pendingPhotos, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
-        console.log("[Render Sync] ========== SYNC PHOTOS CALLED ==========")
-        
         try {
+            console.log("[Render Sync] ========== SYNC PHOTOS CALLED ==========")
+            console.log("[Render Sync] Function entered successfully")
             console.log("[Render Sync] Step 1: Checking parameters...")
             var photosCount = 0
             try {
