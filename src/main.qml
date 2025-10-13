@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "2.8.9"
+    property string pluginVersion: "2.9.0"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -295,10 +295,22 @@ Item {
      * Display toast notification
      */
     function displayToast(message, level) {
+        // Log to console
+        console.log("[Render Sync] " + message)
+        
+        // Show toast
         if (iface && iface.mainWindow()) {
             iface.mainWindow().displayToast(message)
-        } else {
-            console.log("[Render Sync] Toast: " + message)
+        }
+        
+        // Also log to message bar (persistent)
+        if (iface && iface.messageBar) {
+            var messageLevel = 0 // Info
+            if (level === "warning") messageLevel = 1
+            if (level === "error") messageLevel = 2
+            if (level === "success") messageLevel = 3
+            
+            iface.messageBar().pushMessage("Render Sync", message, messageLevel, 0) // 0 = no timeout
         }
     }
     
