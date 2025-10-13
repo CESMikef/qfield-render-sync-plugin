@@ -92,9 +92,24 @@ Popup {
                     }
                 }
                 
-                // Try mapLayer (singular) - might need layer ID
-                addDebugLog("=== Checking mapLayer ===")
-                addDebugLog("mapLayer: " + typeof qgisProject.mapLayer)
+                // Check dashBoard properties
+                addDebugLog("=== Checking dashBoard ===")
+                if (typeof dashBoard !== 'undefined' && dashBoard) {
+                    addDebugLog("dashBoard exists")
+                    addDebugLog("dashBoard.layerTree: " + typeof dashBoard.layerTree)
+                    addDebugLog("dashBoard.activeLayer: " + typeof dashBoard.activeLayer)
+                    
+                    // List dashBoard properties
+                    var dashProps = []
+                    for (var dprop in dashBoard) {
+                        if (dprop.toLowerCase().indexOf("layer") >= 0) {
+                            dashProps.push(dprop + ":" + typeof dashBoard[dprop])
+                        }
+                    }
+                    addDebugLog("dashBoard layer props: " + dashProps.join(", "))
+                } else {
+                    addDebugLog("dashBoard NOT available")
+                }
             } else {
                 addDebugLog("qgisProject NOT available in dialog!")
             }
