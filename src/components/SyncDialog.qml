@@ -326,38 +326,42 @@ Popup {
         
         addDebugLog("Plugin reference: " + (plugin ? "valid" : "NULL"))
         addDebugLog("plugin.syncPhotos type: " + typeof plugin.syncPhotos)
+        addDebugLog("pendingPhotos length: " + pendingPhotos.length)
         addDebugLog("Calling plugin.syncPhotos()...")
         
-        try {
-            plugin.syncPhotos(
-            pendingPhotos,
-            selectedLayer,
-            function(photoIndex, total, percent, status) {
-                addDebugLog("Progress: " + photoIndex + "/" + total + " - " + percent + "% - " + status)
-                console.log("[SyncDialog] Progress: " + photoIndex + "/" + total + " - " + percent + "%")
-            },
-            function(photoIndex, success, error) {
-                addDebugLog("Photo " + photoIndex + " complete: " + (success ? "SUCCESS" : "FAILED: " + error))
-                console.log("[SyncDialog] Photo complete: " + success)
-            },
-            function(results) {
-                addDebugLog("=== SYNC COMPLETE ===")
-                addDebugLog("Total: " + results.total)
-                addDebugLog("Succeeded: " + results.succeeded)
-                addDebugLog("Failed: " + results.failed)
-                if (results.errors && results.errors.length > 0) {
-                    for (var i = 0; i < results.errors.length; i++) {
-                        addDebugLog("Error " + i + ": " + results.errors[i].error)
-                    }
+        // Define callbacks outside to avoid closure issues
+        var progressCallback = function(photoIndex, total, percent, status) {
+            addDebugLog("Progress: " + photoIndex + "/" + total + " - " + percent + "% - " + status)
+            console.log("[SyncDialog] Progress: " + photoIndex + "/" + total + " - " + percent + "%")
+        }
+        
+        var photoCompleteCallback = function(photoIndex, success, error) {
+            addDebugLog("Photo " + photoIndex + " complete: " + (success ? "SUCCESS" : "FAILED: " + error))
+            console.log("[SyncDialog] Photo complete: " + success)
+        }
+        
+        var allCompleteCallback = function(results) {
+            addDebugLog("=== SYNC COMPLETE ===")
+            addDebugLog("Total: " + results.total)
+            addDebugLog("Succeeded: " + results.succeeded)
+            addDebugLog("Failed: " + results.failed)
+            if (results.errors && results.errors.length > 0) {
+                for (var i = 0; i < results.errors.length; i++) {
+                    addDebugLog("Error " + i + ": " + (results.errors[i].error || results.errors[i]))
                 }
-                
-                console.log("[SyncDialog] All complete: " + results.succeeded + " succeeded")
-                syncing = false
-                plugin.syncInProgress = false
-                resultText.text = "Sync Complete!\nSucceeded: " + results.succeeded + "\nFailed: " + results.failed
-                resultDialog.open()
             }
-        )
+            
+            console.log("[SyncDialog] All complete: " + results.succeeded + " succeeded")
+            syncing = false
+            plugin.syncInProgress = false
+            resultText.text = "Sync Complete!\nSucceeded: " + results.succeeded + "\nFailed: " + results.failed
+            resultDialog.open()
+        }
+        
+        try {
+            addDebugLog("About to call plugin.syncPhotos with " + pendingPhotos.length + " photos")
+            plugin.syncPhotos(pendingPhotos, selectedLayer, progressCallback, photoCompleteCallback, allCompleteCallback)
+            addDebugLog("plugin.syncPhotos call completed (no exception)")
         } catch (e) {
             addDebugLog("EXCEPTION calling plugin.syncPhotos: " + e.toString())
             console.log("[SyncDialog] EXCEPTION:", e)
