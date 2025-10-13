@@ -295,21 +295,40 @@ Popup {
         }
         
         addDebugLog("Starting sync for layer: " + selectedLayer.name)
-        addDebugLog("This will sync ALL features with photos in the layer")
+        addDebugLog("Syncing " + pendingPhotos.length + " photos")
+        
+        // Log what we're sending
+        for (var i = 0; i < pendingPhotos.length; i++) {
+            addDebugLog("Photo " + i + ": " + pendingPhotos[i].localPath)
+        }
         
         syncing = true
         plugin.syncInProgress = true
+        
+        addDebugLog("Calling plugin.syncPhotos()...")
         
         plugin.syncPhotos(
             pendingPhotos,
             selectedLayer,
             function(photoIndex, total, percent, status) {
+                addDebugLog("Progress: " + photoIndex + "/" + total + " - " + percent + "% - " + status)
                 console.log("[SyncDialog] Progress: " + photoIndex + "/" + total + " - " + percent + "%")
             },
             function(photoIndex, success, error) {
+                addDebugLog("Photo " + photoIndex + " complete: " + (success ? "SUCCESS" : "FAILED: " + error))
                 console.log("[SyncDialog] Photo complete: " + success)
             },
             function(results) {
+                addDebugLog("=== SYNC COMPLETE ===")
+                addDebugLog("Total: " + results.total)
+                addDebugLog("Succeeded: " + results.succeeded)
+                addDebugLog("Failed: " + results.failed)
+                if (results.errors && results.errors.length > 0) {
+                    for (var i = 0; i < results.errors.length; i++) {
+                        addDebugLog("Error " + i + ": " + results.errors[i].error)
+                    }
+                }
+                
                 console.log("[SyncDialog] All complete: " + results.succeeded + " succeeded")
                 syncing = false
                 plugin.syncInProgress = false
