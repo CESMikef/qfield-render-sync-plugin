@@ -215,52 +215,135 @@ function uploadPhoto(localPath, remoteUrl, username, password, onProgress, onCom
  * @param {function} onComplete - Completion callback(success, photoUrl, error)
  */
 function uploadPhotoWithCheck(localPath, globalId, webdavUrl, username, password, onProgress, onComplete) {
-    // Generate unique filename
+    // Generate unique filename based on the original filename to maintain consistency
     var extension = getFileExtension(localPath);
-    var filename = generatePhotoFilename(globalId, extension);
+    
+    // Extract original filename from path
+    var pathParts = localPath.replace(/\\/g, '/').split('/');
+    var originalFilename = pathParts[pathParts.length - 1];
+    
+    // Use original filename if it exists, otherwise generate one
+    var filename = originalFilename || generatePhotoFilename(globalId, extension);
     var remoteUrl = webdavUrl.replace(/\/$/, '') + '/' + filename;
     
     console.log('[WebDAV] Starting photo upload: ' + filename);
+    console.log('[WebDAV] Local path: ' + localPath);
+    console.log('[WebDAV] Remote URL: ' + remoteUrl);
     
-    // Step 1: Check if file already exists
-    if (onProgress) onProgress(0, 'Checking for duplicates...');
+    // SKIP duplicate check in QField - just upload directly
+    // This avoids file reading issues in QML
+    if (onProgress) onProgress(0, 'Preparing upload...');
     
-    checkFileExists(remoteUrl, username, password, function(exists, error) {
-        if (error) {
-            console.log('[WebDAV] ERROR: Failed to check file existence: ' + error);
-            onComplete(false, null, error);
-            return;
+    // Try to upload using file:// URL directly
+    uploadPhotoDirectly(
+        localPath,
+        remoteUrl,
+        username,
+        password,
+        function(percent, status) {
+            if (onProgress) onProgress(percent, status || ('Uploading... ' + percent + '%'));
+        },
+        function(success, uploadError) {
+            if (success) {
+                console.log('[WebDAV] Upload successful: ' + remoteUrl);
+                if (onProgress) onProgress(100, 'Upload complete');
+                onComplete(true, remoteUrl, null);
+            } else {
+                console.log('[WebDAV] Upload failed: ' + uploadError);
+                onComplete(false, null, uploadError);
+            }
+        }
+    );
+}
+
+/**
+ * Upload photo directly without reading into memory
+ * Uses file:// URL to let XHR handle the file reading
+ */
+function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgress, onComplete) {
+    var xhr = new XMLHttpRequest();
+    
+    // Track upload progress
+    xhr.upload.onprogress = function(event) {
+        if (event.lengthComputable && onProgress) {
+            var percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent, 'Uploading... ' + percent + '%');
+        }
+    };
+    
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            if (xhr.status === 200 || xhr.status === 201 || xhr.status === 204) {
+                console.log('[WebDAV] Photo uploaded successfully');
+                onComplete(true, null);
+            } else {
+                var error = parseErrorMessage(xhr);
+                console.log('[WebDAV] ERROR: Upload failed: ' + error);
+                onComplete(false, error);
+            }
+        }
+    };
+    
+    xhr.onerror = function() {
+        console.log('[WebDAV] ERROR: Network error during upload');
+        onComplete(false, 'Network error during upload');
+    };
+    
+    xhr.ontimeout = function() {
+        console.log('[WebDAV] ERROR: Upload timeout');
+        onComplete(false, 'Upload timeout');
+    };
+    
+    // Configure request
+    xhr.open('PUT', remoteUrl, true);
+    xhr.setRequestHeader('Authorization', 'Basic ' + createBasicAuth(username, password));
+    xhr.setRequestHeader('Content-Type', 'image/jpeg');
+    xhr.timeout = 120000; // 2 minutes
+    
+    try {
+        // Convert Windows path to file URL
+        var fileUrl = localPath;
+        if (!fileUrl.startsWith('file://')) {
+            fileUrl = 'file:///' + localPath.replace(/\\/g, '/');
         }
         
-        if (exists) {
-            // File already exists, skip upload
-            console.log('[WebDAV] Photo already exists, skipping upload: ' + filename);
-            if (onProgress) onProgress(100, 'Already uploaded');
-            onComplete(true, remoteUrl, null);
-            return;
-        }
+        console.log('[WebDAV] Reading from: ' + fileUrl);
+        if (onProgress) onProgress(5, 'Reading file...');
         
-        // Step 2: Upload file
-        if (onProgress) onProgress(0, 'Uploading...');
+        // Try to read and upload the file
+        var fileReader = new XMLHttpRequest();
+        fileReader.responseType = 'arraybuffer';
         
-        uploadPhoto(
-            localPath,
-            remoteUrl,
-            username,
-            password,
-            function(percent) {
-                if (onProgress) onProgress(percent, 'Uploading... ' + percent + '%');
-            },
-            function(success, uploadError) {
-                if (success) {
-                    if (onProgress) onProgress(100, 'Upload complete');
-                    onComplete(true, remoteUrl, null);
+        fileReader.onreadystatechange = function() {
+            if (fileReader.readyState === XMLHttpRequest.DONE) {
+                if (fileReader.status === 200 || fileReader.status === 0) {
+                    console.log('[WebDAV] File read successfully, uploading...');
+                    if (onProgress) onProgress(10, 'Uploading to server...');
+                    try {
+                        xhr.send(fileReader.response);
+                    } catch (e) {
+                        console.log('[WebDAV] ERROR: Failed to send: ' + e.toString());
+                        onComplete(false, 'Failed to send file: ' + e.toString());
+                    }
                 } else {
-                    onComplete(false, null, uploadError);
+                    console.log('[WebDAV] ERROR: Failed to read file, status: ' + fileReader.status);
+                    onComplete(false, 'Cannot read file at: ' + localPath);
                 }
             }
-        );
-    });
+        };
+        
+        fileReader.onerror = function() {
+            console.log('[WebDAV] ERROR: File read error');
+            onComplete(false, 'Error reading file: ' + localPath);
+        };
+        
+        fileReader.open('GET', fileUrl, true);
+        fileReader.send();
+        
+    } catch (e) {
+        console.log('[WebDAV] ERROR: Exception: ' + e.toString());
+        onComplete(false, 'Failed to process file: ' + e.toString());
+    }
 }
 
 /**
