@@ -77,10 +77,32 @@ Popup {
                 
                 // Try different ways to access layers
                 addDebugLog("=== Trying different methods ===")
-                addDebugLog("mapLayers: " + typeof qgisProject.mapLayers)
-                addDebugLog("layers: " + typeof qgisProject.layers)
-                addDebugLog("layerStore: " + typeof qgisProject.layerStore)
-                addDebugLog("mapLayersByName: " + typeof qgisProject.mapLayersByName)
+                addDebugLog("layerTreeRoot: " + typeof qgisProject.layerTreeRoot)
+                
+                if (typeof qgisProject.layerTreeRoot === 'function') {
+                    var root = qgisProject.layerTreeRoot()
+                    addDebugLog("layerTreeRoot() returned: " + typeof root)
+                    
+                    if (root) {
+                        addDebugLog("root.findLayers: " + typeof root.findLayers)
+                        
+                        if (typeof root.findLayers === 'function') {
+                            var treeLayers = root.findLayers()
+                            addDebugLog("findLayers() returned " + treeLayers.length + " layers")
+                            
+                            for (var i = 0; i < treeLayers.length; i++) {
+                                var treeLayer = treeLayers[i]
+                                addDebugLog("TreeLayer " + i + ": " + typeof treeLayer)
+                                if (treeLayer && typeof treeLayer.layer === 'function') {
+                                    var lyr = treeLayer.layer()
+                                    if (lyr) {
+                                        addDebugLog("  Layer: " + lyr.name + " (type: " + lyr.type + ")")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             } else {
                 addDebugLog("qgisProject NOT available in dialog!")
             }
