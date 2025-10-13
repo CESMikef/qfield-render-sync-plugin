@@ -271,15 +271,18 @@ function uploadPhotoWithCheck(localPath, globalId, webdavUrl, username, password
  * Uses file:// URL to let XHR handle the file reading
  */
 function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgress, onComplete) {
-    var xhr = new XMLHttpRequest();
-    
-    // Track upload progress
-    xhr.upload.onprogress = function(event) {
-        if (event.lengthComputable && onProgress) {
-            var percent = Math.round((event.loaded / event.total) * 100);
-            onProgress(percent, 'Uploading... ' + percent + '%');
-        }
-    };
+    try {
+        if (onProgress) onProgress(6, 'Creating upload request...');
+        var xhr = new XMLHttpRequest();
+        
+        if (onProgress) onProgress(7, 'Setting up progress tracking...');
+        // Track upload progress
+        xhr.upload.onprogress = function(event) {
+            if (event.lengthComputable && onProgress) {
+                var percent = Math.round((event.loaded / event.total) * 100);
+                onProgress(percent, 'Uploading... ' + percent + '%');
+            }
+        };
     
     xhr.onreadystatechange = function() {
         if (xhr.readyState === XMLHttpRequest.DONE) {
@@ -353,6 +356,11 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
     } catch (e) {
         // console.log('[WebDAV] ERROR: Exception: ' + e.toString());
         onComplete(false, 'Failed to process file: ' + e.toString());
+    }
+    
+    } catch (e) {
+        if (onProgress) onProgress(99, 'EXCEPTION in uploadPhotoDirectly: ' + e.toString());
+        onComplete(false, 'Exception in uploadPhotoDirectly: ' + e.toString());
     }
 }
 

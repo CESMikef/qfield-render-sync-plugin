@@ -274,7 +274,8 @@ function syncAllPhotos(pendingPhotos, config, layer, webdavModule, apiModule, on
                 currentIndex++;
                 
                 // Small delay between photos to prevent overwhelming the server
-                setTimeout(syncNext, 500);
+                // Use syncNext directly instead of setTimeout (not available in QML)
+                syncNext();
             }
         );
     }
