@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.0.3"
+    property string pluginVersion: "3.0.4"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -564,38 +564,36 @@ Item {
             console.log("[Render Sync] qgisProject is available")
             displayToast("qgisProject available")
             
-            // Get mapLayers - this is a property, not a function!
-            var mapLayers = qgisProject.mapLayers
-            console.log("[Render Sync] mapLayers type:", typeof mapLayers)
-            console.log("[Render Sync] mapLayers:", mapLayers)
-            
-            if (!mapLayers) {
-                console.log("[Render Sync] ERROR: mapLayers() returned null")
-                displayToast("ERROR: mapLayers null", "error")
-                return []
-            }
-            
-            displayToast("Got mapLayers")
-            
-            // Iterate through the map
-            // In QML, QMap is exposed as a JS object with keys
-            for (var layerId in mapLayers) {
-                var layer = mapLayers[layerId]
-                console.log("[Render Sync] Checking layer:", layerId, "Type:", typeof layer)
+            // Use layerTreeRoot to get all layers
+            // This is the correct way according to QField's exposed API
+            if (typeof qgisProject.layerTreeRoot === 'function') {
+                console.log("[Render Sync] Using layerTreeRoot()")
+                displayToast("Using layerTreeRoot()")
                 
-                if (layer) {
-                    console.log("[Render Sync] Layer name:", layer.name)
-                    console.log("[Render Sync] Layer type:", layer.type)
+                var root = qgisProject.layerTreeRoot()
+                if (root && typeof root.findLayers === 'function') {
+                    var layerTreeLayers = root.findLayers()
+                    console.log("[Render Sync] Found", layerTreeLayers.length, "layer tree layers")
+                    displayToast("Found " + layerTreeLayers.length + " layers")
                     
-                    // type === 0 means Vector layer in QGIS
-                    if (layer.type === 0) {
-                        layers.push(layer)
-                        console.log("[Render Sync] ✓ Added vector layer:", layer.name)
-                        displayToast("Found: " + layer.name)
-                    } else {
-                        console.log("[Render Sync] ✗ Skipping non-vector layer:", layer.name, "(type:", layer.type, ")")
+                    for (var i = 0; i < layerTreeLayers.length; i++) {
+                        var treeLayer = layerTreeLayers[i]
+                        if (treeLayer && typeof treeLayer.layer === 'function') {
+                            var layer = treeLayer.layer()
+                            if (layer && layer.type === 0) {
+                                layers.push(layer)
+                                console.log("[Render Sync] ✓ Added vector layer:", layer.name)
+                                displayToast("Found: " + layer.name)
+                            }
+                        }
                     }
+                } else {
+                    console.log("[Render Sync] layerTreeRoot doesn't have findLayers()")
+                    displayToast("No findLayers() method", "warning")
                 }
+            } else {
+                console.log("[Render Sync] layerTreeRoot() not available")
+                displayToast("No layerTreeRoot()", "error")
             }
             
             // Report results
