@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.4.3"
+    property string pluginVersion: "3.4.4"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -417,51 +417,70 @@ Item {
      */
     function syncPhotos(pendingPhotos, layer, onPhotoProgress, onPhotoComplete, onAllComplete) {
         console.log("[Render Sync] ========== SYNC PHOTOS CALLED ==========")
-        console.log("[Render Sync] Pending photos count: " + pendingPhotos.length)
-        console.log("[Render Sync] Config valid: " + configValid)
-        console.log("[Render Sync] Layer: " + (layer ? layer.name : "null"))
         
-        if (!configValid) {
-            console.log("[Render Sync] ERROR: Config not valid!")
+        try {
+            console.log("[Render Sync] Pending photos count: " + (pendingPhotos ? pendingPhotos.length : "null"))
+            console.log("[Render Sync] Config valid: " + configValid)
+            console.log("[Render Sync] Config object: " + (config ? "exists" : "null"))
+            console.log("[Render Sync] Layer: " + (layer ? layer.name : "null"))
+            console.log("[Render Sync] WebDAV module: " + (typeof WebDAV))
+            console.log("[Render Sync] API module: " + (typeof API))
+            console.log("[Render Sync] SyncEngine module: " + (typeof SyncEngine))
+            
+            if (!configValid) {
+                console.log("[Render Sync] ERROR: Config not valid!")
+                if (onAllComplete) {
+                    onAllComplete({
+                        total: 0,
+                        succeeded: 0,
+                        failed: 0,
+                        errors: ["Configuration not loaded"]
+                    })
+                }
+                return
+            }
+            
+            if (!pendingPhotos || pendingPhotos.length === 0) {
+                console.log("[Render Sync] No photos to sync")
+                if (onAllComplete) {
+                    onAllComplete({
+                        total: 0,
+                        succeeded: 0,
+                        failed: 0,
+                        errors: []
+                    })
+                }
+                return
+            }
+            
+            console.log("[Render Sync] Calling SyncEngine.syncAllPhotos...")
+            
+            // Call SyncEngine with module references
+            SyncEngine.syncAllPhotos(
+                pendingPhotos,
+                config,
+                layer,
+                WebDAV,
+                API,
+                onPhotoProgress,
+                onPhotoComplete,
+                onAllComplete
+            )
+            
+            console.log("[Render Sync] SyncEngine.syncAllPhotos called")
+            
+        } catch (e) {
+            console.log("[Render Sync] EXCEPTION in syncPhotos: " + e.toString())
+            console.log("[Render Sync] Stack: " + (e.stack || "no stack"))
             if (onAllComplete) {
                 onAllComplete({
                     total: 0,
                     succeeded: 0,
                     failed: 0,
-                    errors: ["Configuration not loaded"]
+                    errors: ["Exception: " + e.toString()]
                 })
             }
-            return
         }
-        
-        if (pendingPhotos.length === 0) {
-            console.log("[Render Sync] No photos to sync")
-            if (onAllComplete) {
-                onAllComplete({
-                    total: 0,
-                    succeeded: 0,
-                    failed: 0,
-                    errors: []
-                })
-            }
-            return
-        }
-        
-        console.log("[Render Sync] Calling SyncEngine.syncAllPhotos...")
-        
-        // Call SyncEngine with module references
-        SyncEngine.syncAllPhotos(
-            pendingPhotos,
-            config,
-            layer,
-            WebDAV,
-            API,
-            onPhotoProgress,
-            onPhotoComplete,
-            onAllComplete
-        )
-        
-        console.log("[Render Sync] SyncEngine.syncAllPhotos called")
     }
     
     // Toolbar Button
