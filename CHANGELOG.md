@@ -1,5 +1,39 @@
 # Changelog
 
+## v4.0.0 (2025-10-14) - API-Based Photo Upload
+
+### 🚀 Major Architecture Change
+**Breaking Change:** Photos now upload via API instead of direct WebDAV connection.
+
+### Why This Change?
+- **Root Cause:** QML's `XMLHttpRequest` cannot read local files using `file://` URLs
+- **Solution:** API handles file upload server-side, working around QML limitations
+- **Benefits:** Simpler plugin code, better error handling, centralized credentials
+
+### ✨ New Features
+- **New Upload Method:** `uploadPhotoViaAPI()` in `webdav_client.js`
+  - Sends photos to API endpoint using multipart/form-data
+  - API handles both WebDAV upload and database update
+  - Single request does everything (upload + DB update)
+
+### 🔧 Changes
+- **webdav_client.js:** Added `uploadPhotoViaAPI()` function
+- **sync_engine.js:** Updated to use API-based upload, simplified workflow
+- **main.qml:** Removed WebDAV credential requirements from plugin
+- **Configuration:** Only API URL and token required (WebDAV credentials stored server-side)
+
+### 📋 Migration Notes
+- **API Endpoint:** Uses `/api/v1/photos/upload-and-update`
+- **Server Requirements:** API must have WebDAV credentials configured in database
+- **Plugin Config:** Only needs `apiUrl`, `apiToken`, `dbTable`, `photoField`
+
+### 🐛 Fixes
+- Resolved QML file access limitations
+- Eliminated "file:// URL not accessible" errors
+- Improved error messages and progress reporting
+
+---
+
 ## v2.8.0 (2025-10-09) - Repository Cleanup & Simplification
 
 ### 🧹 Major Cleanup

@@ -50,12 +50,12 @@ function validateUrl(url) {
  * @returns {object} - {valid: boolean, missing: array}
  */
 function validateConfiguration(config) {
+    // v4.0.0+: Only API credentials required (WebDAV handled server-side)
     var required = [
-        'webdavUrl',
-        'webdavUsername',
-        'webdavPassword',
         'apiUrl',
-        'apiToken'
+        'apiToken',
+        'dbTable',
+        'photoField'
     ];
     
     var missing = [];
@@ -111,7 +111,7 @@ function findPendingPhotos(layer, photoField) {
  * @param {object} config - Configuration object
  * @param {object} layer - Vector layer
  * @param {object} webdavModule - WebDAV module reference
- * @param {object} apiModule - API module reference
+ * @param {object} apiModule - API module reference (not used in v4.0.0+)
  * @param {function} onProgress - Progress callback(percent, status)
  * @param {function} onComplete - Completion callback(success, photoUrl, error)
  */
@@ -123,62 +123,48 @@ function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress
     // console.log('[Sync] Syncing photo for feature: ' + globalId);
     if (onProgress) onProgress(0, 'Syncing feature...');
     
-    // Step 1: Upload to WebDAV
-    if (onProgress) onProgress(0, 'Uploading to WebDAV...');
+    // Upload via API (which handles both WebDAV upload and database update)
+    if (onProgress) onProgress(0, 'Uploading via API...');
     
-    webdavModule.uploadPhotoWithCheck(
+    webdavModule.uploadPhotoViaAPI(
         localPath,
         globalId,
-        config.webdavUrl,
-        config.webdavUsername,
-        config.webdavPassword,
+        config.dbTable,
+        config.photoField,
+        config.apiUrl,
+        config.apiToken,
         function(percent, status) {
-            if (onProgress) onProgress(percent * 0.7, status); // 70% for upload
+            if (onProgress) onProgress(percent * 0.9, status); // 90% for upload
         },
-        function(uploadSuccess, photoUrl, uploadError) {
+        function(uploadSuccess, uploadError) {
             if (!uploadSuccess) {
-                // console.log('[Sync] ERROR: Upload failed for ' + globalId + ': ' + uploadError);
+                // console.log('[Sync] ERROR: API upload failed for ' + globalId + ': ' + uploadError);
                 onComplete(false, null, uploadError);
                 return;
             }
             
-            // Step 2: Update database via API
-            if (onProgress) onProgress(70, 'Updating database...');
+            // API has already updated the database, now update local layer
+            if (onProgress) onProgress(90, 'Updating local layer...');
             
-            apiModule.updatePhotoWithRetry(
-                config.apiUrl,
-                config.apiToken,
-                globalId,
-                photoUrl,
-                config.dbTable,
-                config.photoField,
-                3, // Max retries
-                function(apiSuccess, apiData, apiError) {
-                    if (!apiSuccess) {
-                        // console.log('[Sync] ERROR: API update failed for ' + globalId + ': ' + apiError);
-                        onComplete(false, photoUrl, apiError);
-                        return;
-                    }
-                    
-                    // Step 3: Update local layer
-                    if (onProgress) onProgress(90, 'Updating local layer...');
-                    
-                    try {
-                        layer.startEditing();
-                        photoData.feature.setAttribute(config.photoField, photoUrl);
-                        layer.commitChanges();
-                        
-                        if (onProgress) onProgress(100, 'Complete');
-                        // console.log('[Sync] Successfully synced photo for ' + globalId);
-                        onComplete(true, photoUrl, null);
-                        
-                    } catch (e) {
-                        var error = 'Failed to update local layer: ' + e.toString();
-                        console.log('[Sync] ERROR: ' + error);
-                        onComplete(false, photoUrl, error);
-                    }
-                }
-            );
+            // Generate the photo URL (API returns it, but we can construct it)
+            var pathParts = String(localPath).replace(/\\/g, '/').split('/');
+            var filename = pathParts[pathParts.length - 1];
+            var photoUrl = config.webdavUrl ? config.webdavUrl.replace(/\/$/, '') + '/' + filename : filename;
+            
+            try {
+                layer.startEditing();
+                photoData.feature.setAttribute(config.photoField, photoUrl);
+                layer.commitChanges();
+                
+                if (onProgress) onProgress(100, 'Complete');
+                // console.log('[Sync] Successfully synced photo for ' + globalId);
+                onComplete(true, photoUrl, null);
+                
+            } catch (e) {
+                var error = 'Failed to update local layer: ' + e.toString();
+                console.log('[Sync] ERROR: ' + error);
+                onComplete(false, photoUrl, error);
+            }
         }
     );
 }
@@ -314,11 +300,7 @@ function validateSyncPrerequisites(config, layer) {
         errors.push('Missing configuration: ' + configValidation.missing.join(', '));
     }
     
-    // Validate URLs
-    if (config.webdavUrl && !validateUrl(config.webdavUrl)) {
-        errors.push('Invalid WebDAV URL');
-    }
-    
+    // Validate API URL
     if (config.apiUrl && !validateUrl(config.apiUrl)) {
         errors.push('Invalid API URL');
     }

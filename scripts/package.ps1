@@ -170,3 +170,4 @@ Write-Host "   - Install from URL or file" -ForegroundColor Gray
 Write-Host ""
 Write-Host "See docs/DEPLOYMENT.md for detailed instructions." -ForegroundColor Cyan
 Write-Host ""
+

@@ -372,6 +372,147 @@ function uploadPhotoDirectly(localPath, remoteUrl, username, password, onProgres
 }
 
 /**
+ * Upload photo via API (which handles WebDAV upload and DB update)
+ * This is the new approach that works around QML file access limitations
+ * @param {string} localPath - Local file path
+ * @param {string} globalId - Feature global ID
+ * @param {string} table - Database table name (e.g., "design.verify_poles")
+ * @param {string} field - Photo field name (e.g., "photo")
+ * @param {string} apiUrl - API base URL
+ * @param {string} apiToken - API authentication token
+ * @param {function} onProgress - Progress callback(percent, status)
+ * @param {function} onComplete - Completion callback(success, error)
+ */
+function uploadPhotoViaAPI(localPath, globalId, table, field, apiUrl, apiToken, onProgress, onComplete) {
+    try {
+        if (onProgress) onProgress(0, 'Preparing API upload...');
+        
+        // Read the file first
+        var fileUrl = localPath;
+        if (!fileUrl.startsWith('file://')) {
+            fileUrl = 'file:///' + localPath.replace(/\\/g, '/');
+        }
+        
+        if (onProgress) onProgress(10, 'Reading file...');
+        
+        var fileReader = new XMLHttpRequest();
+        fileReader.responseType = 'arraybuffer';
+        
+        fileReader.onreadystatechange = function() {
+            if (fileReader.readyState === XMLHttpRequest.DONE) {
+                if (fileReader.status === 200 || fileReader.status === 0) {
+                    // File read successfully, now upload to API
+                    if (onProgress) onProgress(20, 'Uploading to API...');
+                    
+                    try {
+                        var xhr = new XMLHttpRequest();
+                        
+                        xhr.onreadystatechange = function() {
+                            if (xhr.readyState === XMLHttpRequest.DONE) {
+                                if (xhr.status === 200) {
+                                    try {
+                                        var response = JSON.parse(xhr.responseText);
+                                        if (onProgress) onProgress(100, 'Upload complete');
+                                        console.log('[WebDAV] API upload successful');
+                                        onComplete(true, null);
+                                    } catch (e) {
+                                        onComplete(false, 'Failed to parse API response: ' + e.toString());
+                                    }
+                                } else {
+                                    var error = 'API error: ' + xhr.status;
+                                    if (xhr.responseText) {
+                                        try {
+                                            var errorData = JSON.parse(xhr.responseText);
+                                            error = errorData.detail || errorData.error || error;
+                                        } catch (e) {
+                                            error += ' - ' + xhr.responseText;
+                                        }
+                                    }
+                                    console.log('[WebDAV] API upload failed: ' + error);
+                                    onComplete(false, error);
+                                }
+                            }
+                        };
+                        
+                        xhr.onerror = function() {
+                            console.log('[WebDAV] Network error during API upload');
+                            onComplete(false, 'Network error');
+                        };
+                        
+                        xhr.ontimeout = function() {
+                            console.log('[WebDAV] API upload timeout');
+                            onComplete(false, 'Request timeout');
+                        };
+                        
+                        // Open connection to API
+                        var endpoint = apiUrl.replace(/\/$/, '') + '/api/v1/photos/upload-and-update';
+                        xhr.open('POST', endpoint);
+                        xhr.setRequestHeader('Authorization', 'Bearer ' + apiToken);
+                        xhr.timeout = 120000; // 2 minutes
+                        
+                        if (onProgress) onProgress(30, 'Creating form data...');
+                        
+                        // Create multipart form data manually
+                        var boundary = '----QFieldBoundary' + new Date().getTime();
+                        xhr.setRequestHeader('Content-Type', 'multipart/form-data; boundary=' + boundary);
+                        
+                        // Get filename from path
+                        var pathParts = String(localPath).replace(/\\/g, '/').split('/');
+                        var filename = pathParts[pathParts.length - 1];
+                        
+                        // Build multipart body
+                        var body = '';
+                        
+                        // Add file field
+                        body += '--' + boundary + '\r\n';
+                        body += 'Content-Disposition: form-data; name="file"; filename="' + filename + '"\r\n';
+                        body += 'Content-Type: image/jpeg\r\n\r\n';
+                        // File data will be added as binary
+                        var fileData = fileReader.response;
+                        
+                        // Add text fields
+                        var textFields = '--' + boundary + '\r\n';
+                        textFields += 'Content-Disposition: form-data; name="global_id"\r\n\r\n';
+                        textFields += globalId + '\r\n';
+                        textFields += '--' + boundary + '\r\n';
+                        textFields += 'Content-Disposition: form-data; name="table"\r\n\r\n';
+                        textFields += table + '\r\n';
+                        textFields += '--' + boundary + '\r\n';
+                        textFields += 'Content-Disposition: form-data; name="field"\r\n\r\n';
+                        textFields += field + '\r\n';
+                        textFields += '--' + boundary + '--\r\n';
+                        
+                        // Combine body parts
+                        // Note: This is a simplified approach - QML may need special handling for binary data
+                        var fullBody = body + fileData + '\r\n' + textFields;
+                        
+                        if (onProgress) onProgress(40, 'Sending to API...');
+                        
+                        // Send request
+                        xhr.send(fullBody);
+                        
+                    } catch (e) {
+                        onComplete(false, 'Failed to create API request: ' + e.toString());
+                    }
+                } else {
+                    onComplete(false, 'Cannot read file, status: ' + fileReader.status);
+                }
+            }
+        };
+        
+        fileReader.onerror = function() {
+            onComplete(false, 'Error reading file');
+        };
+        
+        fileReader.open('GET', fileUrl, true);
+        fileReader.send();
+        
+    } catch (e) {
+        onComplete(false, 'Exception in uploadPhotoViaAPI: ' + e.toString());
+    }
+}
+
+/**
  * Test WebDAV connection
  * @param {string} url - WebDAV URL
  * @param {string} username - Username

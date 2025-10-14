@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "3.5.7"
+    property string pluginVersion: "4.0.0"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -170,8 +170,8 @@ Item {
         loadingConfig = true
         console.log("[Render Sync] Fetching configuration from API...")
         
-        // Get API base URL - use default (customVariable not available in QField)
-        var apiBaseUrl = "https://qfield-photo-sync-api.onrender.com"
+        // Get API base URL - use default or from environment
+        var apiBaseUrl = "https://ces-qgis-qfield-v1.onrender.com"
         
         var xhr = new XMLHttpRequest()
         xhr.open("GET", apiBaseUrl + "/api/config?token=" + userToken, true)
@@ -189,18 +189,18 @@ Item {
                         var response = JSON.parse(xhr.responseText)
                         console.log("[Render Sync] Parsed response:", JSON.stringify(response))
                         
+                        // v4.0.0: WebDAV credentials no longer needed in plugin
+                        // API handles WebDAV upload server-side
                         config = {
-                            webdavUrl: response.webdav_url || response.DB_HOST || "",
-                            webdavUsername: response.webdav_username || response.DB_USER || "",
-                            webdavPassword: response.webdav_password || response.DB_PASSWORD || "",
                             apiUrl: apiBaseUrl,
                             apiToken: userToken,
                             dbTable: response.db_table || response.ALLOWED_SCHEMA || "design.verify_poles",
                             photoField: response.photo_field || "photo",
-                            dbPoolSize: response.DB_POOL_SIZE || 10
+                            // Optional: WebDAV URL for constructing photo URLs (display only)
+                            webdavUrl: response.webdav_url || ""
                         }
                         
-                        console.log("[Render Sync] Config set: webdavUrl=" + config.webdavUrl + ", dbTable=" + config.dbTable)
+                        console.log("[Render Sync] Config set: apiUrl=" + config.apiUrl + ", dbTable=" + config.dbTable)
                         
                         validateConfiguration()
                         
@@ -249,20 +249,18 @@ Item {
     function validateConfiguration() {
         configErrors = []
         
-        if (!config.webdavUrl || config.webdavUrl.trim() === "") {
-            configErrors.push("WebDAV URL")
-        }
-        if (!config.webdavUsername || config.webdavUsername.trim() === "") {
-            configErrors.push("WebDAV Username")
-        }
-        if (!config.webdavPassword || config.webdavPassword.trim() === "") {
-            configErrors.push("WebDAV Password")
-        }
+        // v4.0.0: Only API credentials required
         if (!config.apiUrl || config.apiUrl.trim() === "") {
             configErrors.push("API URL")
         }
         if (!config.apiToken || config.apiToken.trim() === "") {
             configErrors.push("API Token")
+        }
+        if (!config.dbTable || config.dbTable.trim() === "") {
+            configErrors.push("Database Table")
+        }
+        if (!config.photoField || config.photoField.trim() === "") {
+            configErrors.push("Photo Field")
         }
         
         configValid = configErrors.length === 0
