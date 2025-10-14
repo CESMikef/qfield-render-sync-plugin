@@ -1,5 +1,44 @@
 # Changelog
 
+## v5.0.0 (2025-10-14) - Database Sync Only (Major Refactor)
+
+### 🎯 **Major Architecture Change**
+
+**Breaking Change:** Plugin now only syncs database records. Photo upload handled by QField natively.
+
+### Why This Change?
+
+- **Root Cause:** QML cannot read local files due to security restrictions
+- **Solution:** Use QField's native WebDAV upload, plugin only syncs database
+- **Benefits:** Simpler, more reliable, uses QField's proven upload code
+
+### How It Works Now
+
+1. **QField uploads photo** → WebDAV (native feature)
+2. **Photo field gets URL** → `https://webdav.com/photos/abc123.jpg`
+3. **Plugin syncs database** → Updates PostgreSQL with URL
+
+### What Changed
+
+- ✅ **Removed file upload logic** - No longer tries to read local files
+- ✅ **Simplified sync engine** - Only calls `/api/v1/photos/update`
+- ✅ **Detects WebDAV URLs** - Finds photos already uploaded by QField
+- ✅ **Database-only sync** - Fast and reliable
+
+### Migration from v4.x
+
+1. **Configure QField photo field** to upload to WebDAV
+2. **Capture photos in QField** (uploads automatically)
+3. **Run plugin** to sync database records
+
+### API Endpoints Used
+
+- `POST /api/v1/photos/update` - Update single photo record
+- `POST /api/v1/photos/batch-update` - Update multiple records
+- `GET /health` - Health check
+
+---
+
 ## v4.0.2 (2025-10-14) - QML Syntax Fix
 
 ### 🐛 Fixes

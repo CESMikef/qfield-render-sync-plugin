@@ -74,10 +74,10 @@ function validateConfiguration(config) {
 }
 
 /**
- * Find features with pending photo uploads
+ * Find features with WebDAV URLs that need database sync
  * @param {object} layer - Vector layer
  * @param {string} photoField - Photo field name
- * @returns {array} - Array of features with local photos
+ * @returns {array} - Array of features with WebDAV URLs
  */
 function findPendingPhotos(layer, photoField) {
     if (!layer) {
@@ -90,80 +90,55 @@ function findPendingPhotos(layer, photoField) {
     
     for (var i = 0; i < features.length; i++) {
         var feature = features[i];
-        var photoPath = feature.attribute(photoField);
+        var photoUrl = feature.attribute(photoField);
+        var globalId = feature.attribute('global_id') || feature.attribute('globalid') || feature.id().toString();
         
-        if (photoPath && isLocalPath(photoPath)) {
+        // Check if photo URL exists and is a WebDAV URL (starts with http/https)
+        if (photoUrl && (photoUrl.indexOf('http://') === 0 || photoUrl.indexOf('https://') === 0)) {
             pending.push({
                 feature: feature,
-                globalId: feature.attribute('global_id') || feature.attribute('globalid') || feature.id().toString(),
-                localPath: photoPath
+                globalId: globalId,
+                photoUrl: photoUrl
             });
         }
     }
     
-    console.log('[Sync] Found ' + pending.length + ' photos pending upload');
+    console.log('[Sync] Found ' + pending.length + ' photos with WebDAV URLs');
     return pending;
 }
 
 /**
- * Sync single photo
+ * Sync single photo (v5.0.0: Database sync only)
  * @param {object} photoData - Photo data object
  * @param {object} config - Configuration object
  * @param {object} layer - Vector layer
- * @param {object} webdavModule - WebDAV module reference
- * @param {object} apiModule - API module reference (not used in v4.0.0+)
+ * @param {object} webdavModule - Not used in v5.0.0
+ * @param {object} apiModule - API module reference
  * @param {function} onProgress - Progress callback(percent, status)
  * @param {function} onComplete - Completion callback(success, photoUrl, error)
  */
 function syncPhoto(photoData, config, layer, webdavModule, apiModule, onProgress, onComplete) {
     var globalId = photoData.globalId;
-    var localPath = photoData.localPath;
+    var photoUrl = photoData.photoUrl;
     
-    // Don't use console.log with globalId - it causes exceptions in QML
-    // console.log('[Sync] Syncing photo for feature: ' + globalId);
-    if (onProgress) onProgress(0, 'Syncing feature...');
+    if (onProgress) onProgress(0, 'Syncing database...');
     
-    // Upload via API (which handles both WebDAV upload and database update)
-    if (onProgress) onProgress(0, 'Uploading via API...');
-    
-    webdavModule.uploadPhotoViaAPI(
-        localPath,
-        globalId,
-        config.dbTable,
-        config.photoField,
+    // Update database with photo URL (photo already uploaded to WebDAV by QField)
+    apiModule.updatePhoto(
         config.apiUrl,
         config.apiToken,
-        function(percent, status) {
-            if (onProgress) onProgress(percent * 0.9, status); // 90% for upload
-        },
-        function(uploadSuccess, uploadError) {
-            if (!uploadSuccess) {
-                // console.log('[Sync] ERROR: API upload failed for ' + globalId + ': ' + uploadError);
-                onComplete(false, null, uploadError);
-                return;
-            }
-            
-            // API has already updated the database, now update local layer
-            if (onProgress) onProgress(90, 'Updating local layer...');
-            
-            // Generate the photo URL (API returns it, but we can construct it)
-            var pathParts = String(localPath).replace(/\\/g, '/').split('/');
-            var filename = pathParts[pathParts.length - 1];
-            var photoUrl = config.webdavUrl ? config.webdavUrl.replace(/\/$/, '') + '/' + filename : filename;
-            
-            try {
-                layer.startEditing();
-                photoData.feature.setAttribute(config.photoField, photoUrl);
-                layer.commitChanges();
-                
-                if (onProgress) onProgress(100, 'Complete');
-                // console.log('[Sync] Successfully synced photo for ' + globalId);
+        globalId,
+        photoUrl,
+        config.dbTable,
+        config.photoField,
+        function(success, data, error) {
+            if (success) {
+                if (onProgress) onProgress(100, 'Database updated');
+                console.log('[Sync] Database updated for ' + globalId);
                 onComplete(true, photoUrl, null);
-                
-            } catch (e) {
-                var error = 'Failed to update local layer: ' + e.toString();
-                console.log('[Sync] ERROR: ' + error);
-                onComplete(false, photoUrl, error);
+            } else {
+                console.log('[Sync] ERROR: Database update failed: ' + error);
+                onComplete(false, null, error);
             }
         }
     );
