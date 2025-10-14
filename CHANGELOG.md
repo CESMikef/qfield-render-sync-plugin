@@ -1,5 +1,20 @@
 # Changelog
 
+## v4.0.1 (2025-10-14) - Configuration Fix
+
+### 🐛 Fixes
+- **Removed /api/config dependency:** Plugin no longer requires `/api/config` endpoint
+- **Simplified configuration:** Uses health check (`/health`) instead of config fetch
+- **Better error handling:** Graceful fallback if API health check fails
+- **Default values:** Uses sensible defaults for `dbTable` and `photoField`
+
+### 🔧 Changes
+- Configuration now only requires API URL and token
+- Health check validates API is reachable
+- Allows proceeding even if health check fails (will retry during sync)
+
+---
+
 ## v4.0.0 (2025-10-14) - API-Based Photo Upload
 
 ### 🚀 Major Architecture Change
