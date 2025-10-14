@@ -1,5 +1,14 @@
 # Changelog
 
+## v4.0.2 (2025-10-14) - QML Syntax Fix
+
+### 🐛 Fixes
+- **Fixed QML syntax error:** Removed emoji characters causing parse errors
+- **Line 200 fix:** Removed checkmark/cross emojis from console.log statements
+- Plugin now loads correctly in QField
+
+---
+
 ## v4.0.1 (2025-10-14) - Configuration Fix
 
 ### 🐛 Fixes

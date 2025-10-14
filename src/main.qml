@@ -28,7 +28,7 @@ Item {
     
     // Plugin metadata
     property string pluginName: "QField Render Sync"
-    property string pluginVersion: "4.0.1"
+    property string pluginVersion: "4.0.2"
     
     // QField-specific references (correct way to access QField objects)
     property var mainWindow: iface ? iface.mainWindow() : null
@@ -197,24 +197,24 @@ Item {
                 console.log("[Render Sync] API Health Check Status: " + xhr.status)
                 
                 if (xhr.status === 200) {
-                    console.log("[Render Sync] âœ" API is reachable")
+                    console.log("[Render Sync] API is reachable")
                     
                     validateConfiguration()
                     
                     if (configValid) {
-                        console.log("[Render Sync] âœ" Configuration ready")
-                        displayToast("âœ" Configuration ready", "success")
+                        console.log("[Render Sync] Configuration ready")
+                        displayToast("Configuration ready", "success")
                     } else {
-                        console.log("[Render Sync] âœ— Configuration incomplete: " + configErrors.join(", "))
+                        console.log("[Render Sync] Configuration incomplete: " + configErrors.join(", "))
                         displayToast("Configuration incomplete: " + configErrors.join(", "), "warning")
                     }
                 } else if (xhr.status === 0) {
-                    console.log("[Render Sync] âœ— Cannot reach API")
+                    console.log("[Render Sync] Cannot reach API")
                     displayToast("Cannot reach API. Check network connection.", "warning")
                     // Still allow usage - might work when actually syncing
                     validateConfiguration()
                 } else {
-                    console.log("[Render Sync] âœ— API health check failed: " + xhr.status)
+                    console.log("[Render Sync] API health check failed: " + xhr.status)
                     displayToast("API may be unavailable (status: " + xhr.status + ")", "warning")
                     // Still allow usage
                     validateConfiguration()
