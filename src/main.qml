@@ -158,7 +158,8 @@ Item {
     }
     
     /**
-     * Fetch configuration from API using token
+     * Setup configuration with token
+     * v4.0.0: Simplified - no API config endpoint needed
      */
     function fetchConfigurationFromAPI() {
         if (!userToken || userToken === "") {
@@ -168,76 +169,65 @@ Item {
         }
         
         loadingConfig = true
-        console.log("[Render Sync] Fetching configuration from API...")
+        console.log("[Render Sync] Setting up configuration with token...")
         
         // Get API base URL - use default or from environment
         var apiBaseUrl = "https://ces-qgis-qfield-v1.onrender.com"
         
+        // v4.0.0: Simple configuration - just need API URL, token, and defaults
+        // No need to fetch from API since WebDAV is handled server-side
+        config = {
+            apiUrl: apiBaseUrl,
+            apiToken: userToken,
+            dbTable: "design.verify_poles",  // Default table
+            photoField: "photo",              // Default field
+            webdavUrl: ""                     // Optional, not needed for upload
+        }
+        
+        console.log("[Render Sync] Config set: apiUrl=" + config.apiUrl + ", dbTable=" + config.dbTable)
+        
+        // Test API connection by checking health endpoint
         var xhr = new XMLHttpRequest()
-        xhr.open("GET", apiBaseUrl + "/api/config?token=" + userToken, true)
-        xhr.setRequestHeader("Authorization", "Bearer " + userToken)
+        xhr.open("GET", apiBaseUrl + "/health", true)
         
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE) {
                 plugin.loadingConfig = false
                 
-                console.log("[Render Sync] API Response Status: " + xhr.status)
-                console.log("[Render Sync] API Response: " + xhr.responseText)
+                console.log("[Render Sync] API Health Check Status: " + xhr.status)
                 
                 if (xhr.status === 200) {
-                    try {
-                        var response = JSON.parse(xhr.responseText)
-                        console.log("[Render Sync] Parsed response:", JSON.stringify(response))
-                        
-                        // v4.0.0: WebDAV credentials no longer needed in plugin
-                        // API handles WebDAV upload server-side
-                        config = {
-                            apiUrl: apiBaseUrl,
-                            apiToken: userToken,
-                            dbTable: response.db_table || response.ALLOWED_SCHEMA || "design.verify_poles",
-                            photoField: response.photo_field || "photo",
-                            // Optional: WebDAV URL for constructing photo URLs (display only)
-                            webdavUrl: response.webdav_url || ""
-                        }
-                        
-                        console.log("[Render Sync] Config set: apiUrl=" + config.apiUrl + ", dbTable=" + config.dbTable)
-                        
-                        validateConfiguration()
-                        
-                        if (configValid) {
-                            console.log("[Render Sync] âœ“ Configuration loaded successfully from API")
-                            displayToast("âœ“ Configuration loaded", "success")
-                        } else {
-                            console.log("[Render Sync] âœ— Configuration incomplete: " + configErrors.join(", "))
-                            displayToast("Configuration incomplete: " + configErrors.join(", "), "warning")
-                        }
-                    } catch (e) {
-                        console.log("[Render Sync] âœ— Error parsing API response: " + e)
-                        displayToast("Error parsing API response", "error")
-                        configValid = false
+                    console.log("[Render Sync] âœ" API is reachable")
+                    
+                    validateConfiguration()
+                    
+                    if (configValid) {
+                        console.log("[Render Sync] âœ" Configuration ready")
+                        displayToast("âœ" Configuration ready", "success")
+                    } else {
+                        console.log("[Render Sync] âœ— Configuration incomplete: " + configErrors.join(", "))
+                        displayToast("Configuration incomplete: " + configErrors.join(", "), "warning")
                     }
-                } else if (xhr.status === 401 || xhr.status === 403) {
-                    console.log("[Render Sync] âœ— Invalid token (status " + xhr.status + ")")
-                    displayToast("Invalid token. Please check and try again.", "error")
-                    configValid = false
-                    // Don't clear token automatically - let user try again
                 } else if (xhr.status === 0) {
-                    console.log("[Render Sync] âœ— Network error or CORS issue")
-                    displayToast("Cannot connect to API. Check network or API endpoint.", "error")
-                    configValid = false
+                    console.log("[Render Sync] âœ— Cannot reach API")
+                    displayToast("Cannot reach API. Check network connection.", "warning")
+                    // Still allow usage - might work when actually syncing
+                    validateConfiguration()
                 } else {
-                    console.log("[Render Sync] âœ— API error: " + xhr.status + " - " + xhr.responseText)
-                    displayToast("API error: " + xhr.status, "error")
-                    configValid = false
+                    console.log("[Render Sync] âœ— API health check failed: " + xhr.status)
+                    displayToast("API may be unavailable (status: " + xhr.status + ")", "warning")
+                    // Still allow usage
+                    validateConfiguration()
                 }
             }
         }
         
         xhr.onerror = function() {
             plugin.loadingConfig = false
-            console.log("[Render Sync] Network error fetching configuration")
-            displayToast("Network error", "error")
-            configValid = false
+            console.log("[Render Sync] Network error checking API")
+            displayToast("Network error - will retry during sync", "warning")
+            // Still set config as valid - will check again during sync
+            validateConfiguration()
         }
         
         xhr.send()
